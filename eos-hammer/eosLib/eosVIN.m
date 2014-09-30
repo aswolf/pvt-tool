@@ -1,5 +1,5 @@
 function [P,dE,KLoc,KPLoc] = eosVIN(V,params)
-    assertTrue(length(params) >= 3,'params must have at least 3 elements');
+    assert(length(params) >= 3,'params must have at least 3 elements');
     V0  = params(1);
     K0  = params(2);
     K0P = params(3);
