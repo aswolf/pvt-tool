@@ -17,26 +17,26 @@ function testDebyeFunVals(testCase)
     calcErr = Dxcalc - DxTbl;
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
-function testEosVIN_P0(testCase)
+function testVinetEos_P0(testCase)
     V0 = 10;
     peos = [V0,100,4.5];
-    verifyEqual(testCase,eosVIN(V0,peos),0);
+    verifyEqual(testCase,VinetEos(V0,peos),0);
 end
-function testEosVIN_K0(testCase)
+function testVinetEos_K0(testCase)
     TOL = 1e-5;
     V0 = 10;
     K0 = 100;
     peos = [V0,K0,4.5];
     dVstep = .001*[-1,1];
     V = V0*(1+dVstep);
-    P = eosVIN(V,peos);
+    P = VinetEos(V,peos);
     K0num = -V0*diff(P)/diff(V);
 
     calcErr = K0num/K0-1;
 
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
-function testEosVIN_KP0(testCase)
+function testVinetEos_KP0(testCase)
     TOL = 1e-5;
 
     V0 = 10;
@@ -45,7 +45,7 @@ function testEosVIN_KP0(testCase)
     peos = [V0,K0,KP0];
     dVstep = 1e-4*[-1:1:1];
     V = V0*(1+dVstep);
-    P = eosVIN(V,peos);
+    P = VinetEos(V,peos);
 
     % Perform 2nd order Taylor expansion to determine KP0
     K0num = -V0*diff(P)/diff(V);
@@ -56,14 +56,14 @@ function testEosVIN_KP0(testCase)
     calcErr = KP0num/KP0-1;
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
-function testEosVIN_Keqn(testCase)
+function testVinetEos_Keqn(testCase)
     TOL = 1e-5;
     V0 = 10;
     K0 = 200;
     peos = [V0,K0,4.5];
 
     V = V0*.7*(1+1e-4*[-2:2]);
-    [P dE K] = eosVIN(V,peos);
+    [P dE K] = VinetEos(V,peos);
 
     Knum = -V.*central_diff(P,V);
     calcErr = Knum(3)./K(3)-1;
@@ -71,14 +71,14 @@ function testEosVIN_Keqn(testCase)
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
 
-function testEosVIN_KPeqn(testCase)
+function testVinetEos_KPeqn(testCase)
     TOL = 1e-5;
     V0 = 10;
     K0 = 200;
     peos = [V0,K0,4.5];
 
     V = V0*.7*(1+1e-4*[-2:2]);
-    [P dE K KP] = eosVIN(V,peos);
+    [P dE K KP] = VinetEos(V,peos);
 
     KPnum = central_diff(K,P);
     calcErr = KPnum(3)./KP(3)-1;

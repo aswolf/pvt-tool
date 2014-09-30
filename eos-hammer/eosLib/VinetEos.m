@@ -1,4 +1,4 @@
-function [P,dE,KLoc,KPLoc] = eosVIN(V,params)
+function [P,dE,KLoc,KPLoc] = VinetEos(V,params)
     assert(length(params) >= 3,'params must have at least 3 elements');
     V0  = params(1);
     K0  = params(2);
