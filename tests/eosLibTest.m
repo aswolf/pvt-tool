@@ -85,27 +85,77 @@ function testVinetEos_KPeqn(testCase)
 
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
+function testDebyePowerLaw_Tdeb0(testCase)
+    V0 = 10;
 
+    Tdeb0 = 500;
+    gam0 = 1.7;
+    q = 1.2;
+    peosHot = [Tdeb0 gam0 q];
+
+    V = V0;
+    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
+    verifyEqual(testCase,Tdeb,Tdeb0)
+end
+function testDebyePowerLaw_gam0(testCase)
+    V0 = 10;
+
+    Tdeb0 = 500;
+    gam0 = 1.7;
+    q = 1.2;
+    peosHot = [Tdeb0 gam0 q];
+
+    V = V0;
+    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
+    verifyEqual(testCase,gam,gam0)
+end
+function testDebyePowerLaw_TdebEqn(testCase)
+    TOL = 1e-5;
+    V0 = 10;
+
+    Tdeb0 = 500;
+    gam0 = 1.7;
+    q = 1.2;
+    peosHot = [Tdeb0 gam0 q];
+
+    V = V0*.7*(1+1e-4*[-2:2]);
+    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
+    gamnum = -V./Tdeb.*central_diff(Tdeb,V);
+
+    calcErr = gamnum(3) - gam(3);
+    verifyTrue(testCase,abs(calcErr)<TOL)
+end
+function testDebyePowerLaw_dgamdVEqn(testCase)
+    TOL = 1e-5;
+    V0 = 10;
+
+    Tdeb0 = 500;
+    gam0 = 1.7;
+    q = 1.2;
+    peosHot = [Tdeb0 gam0 q];
+
+    V = V0*.7*(1+1e-4*[-2:2]);
+    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
+
+    dgamdVnum = central_diff(gam,V);
+
+    calcErr = dgamdVnum(3) - dgamdV(3);
+    verifyTrue(testCase,abs(calcErr)<TOL)
+end
 function testMieGrunDebyeHotEos_Phot0(testCase)
     V0 = 10;
     T0 = 300;
     Natom = 4;
     Tdeb0 = 500;
     gam0 = 1.5;
-    % Test with simple fixed gamma model
-    %q = 1;
-    peosHot = [Tdeb0 gam0 1 1.0];
+    q = 1.2;
+    peosHot = [Tdeb0 gam0 q 1.0];
 
     V = V0;
     T = T0;
-    debyeTderivsFun = @(V,V0,p)( deal(...
-        p(1)*exp(-1./p(3)*(p(2)*(V/V0).^p(3)-p(2))),...
-        p(2)*(V/V0).^p(3),...
-        p(3)*p(2)*(V/V0).^p(3)./V ));
-    [Tdeb, gam, dgamdV] = debyeTderivsFun(V,V0,peosHot(1:end-1));
-
+    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
     [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
-        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,debyeTderivsFun);
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,@debyePowerLaw);
 
     verifyEqual(testCase,Phot,0);
 end
@@ -115,18 +165,14 @@ function testMieGrunDebyeHotEos_Ehot0(testCase)
     Natom = 4;
     Tdeb0 = 500;
     gam0 = 1.5;
-    % Test with simple fixed gamma model
-    %q = 1;
-    peosHot = [Tdeb0 gam0 1 1.0];
+    q = 1.2;
+    peosHot = [Tdeb0 gam0 q 1.0];
 
     V = V0;
     T = T0;
-    debyeTderivsFun = @(V,V0,p)( deal(p(1)*exp(-p(2)*log(V./V0)),...
-        p(2)*ones(size(V)), zeros(size(V))) );
-    [Tdeb, gam, dgamdV] = debyeTderivsFun(V,V0,peosHot(1:end-1));
-
+    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
     [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
-        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,debyeTderivsFun);
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,@debyePowerLaw);
 
     verifyEqual(testCase,Ehot,0);
 end
@@ -137,19 +183,15 @@ function testMieGrunDebyeHotEos_CvEqn(testCase)
     Natom = 4;
     Tdeb0 = 500;
     gam0 = 1.5;
-    % Test with simple fixed gamma model
-    %q = 1;
-    peosHot = [Tdeb0 gam0 1 1.0];
+    q = 1.2;
+    peosHot = [Tdeb0 gam0 q 1.0];
 
     V = V0*.7;
     T = Tdeb0*(1+1e-4*[-2:2]);
 
-    debyeTderivsFun = @(V,V0,p)( deal(p(1)*exp(-p(2)*log(V./V0)),...
-        p(2)*ones(size(V)), zeros(size(V))) );
-    [Tdeb, gam, dgamdV] = debyeTderivsFun(V,V0,peosHot(1:end-1));
-
+    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
     [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
-        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,debyeTderivsFun);
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,@debyePowerLaw);
 
     Cvnum = central_diff(Ehot,T);
     calcErr = Cvnum(3)./Cvhot(3)-1;
@@ -163,19 +205,15 @@ function testMieGrunDebyeHotEos_KhotEqn(testCase)
     Natom = 4;
     Tdeb0 = 500;
     gam0 = 1.5;
-    % Test with simple fixed gamma model
-    %q = 1;
-    peosHot = [Tdeb0 gam0 1 1.0];
+    q = 1.2;
+    peosHot = [Tdeb0 gam0 q 1.0];
 
     V = V0*.7*(1+1e-4*[-2:2]);
     T = Tdeb0;
 
-    debyeTderivsFun = @(V,V0,p)( deal(p(1)*exp(-p(2)*log(V./V0)),...
-        p(2)*ones(size(V)), zeros(size(V))) );
-    [Tdeb, gam, dgamdV] = debyeTderivsFun(V,V0,peosHot(1:end-1));
-
+    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
     [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
-        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,debyeTderivsFun);
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,@debyePowerLaw);
 
     Khotnum = -V.*central_diff(Phot,V);
     calcErr = Khotnum(3)./KThot(3)-1;
