@@ -19,17 +19,17 @@ function testDebyeFunVals(testCase)
 end
 function testVinetEos_P0(testCase)
     V0 = 10;
-    peos = [V0,100,4.5];
-    verifyEqual(testCase,VinetEos(V0,peos),0);
+    pEos = [V0,100,4.5];
+    verifyEqual(testCase,VinetEos(V0,pEos),0);
 end
 function testVinetEos_K0(testCase)
     TOL = 1e-5;
     V0 = 10;
     K0 = 100;
-    peos = [V0,K0,4.5];
+    pEos = [V0,K0,4.5];
     dVstep = .001*[-1,1];
     V = V0*(1+dVstep);
-    P = VinetEos(V,peos);
+    P = VinetEos(V,pEos);
     K0num = -V0*diff(P)/diff(V);
 
     calcErr = K0num/K0-1;
@@ -42,10 +42,10 @@ function testVinetEos_KP0(testCase)
     V0 = 10;
     K0 = 100;
     KP0 = 4.5;
-    peos = [V0,K0,KP0];
+    pEos = [V0,K0,KP0];
     dVstep = 1e-4*[-1:1:1];
     V = V0*(1+dVstep);
-    P = VinetEos(V,peos);
+    P = VinetEos(V,pEos);
 
     % Perform 2nd order Taylor expansion to determine KP0
     K0num = -V0*diff(P)/diff(V);
@@ -56,14 +56,18 @@ function testVinetEos_KP0(testCase)
     calcErr = KP0num/KP0-1;
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
+function testVinetEos_Peqn(testCase)
+    % Not yet implimented
+    verifyTrue(testCase,0);
+end
 function testVinetEos_Keqn(testCase)
     TOL = 1e-5;
     V0 = 10;
     K0 = 200;
-    peos = [V0,K0,4.5];
+    pEos = [V0,K0,4.5];
 
     V = V0*.7*(1+1e-4*[-2:2]);
-    [P dE K] = VinetEos(V,peos);
+    [P K] = VinetEos(V,pEos);
 
     Knum = -V.*central_diff(P,V);
     calcErr = Knum(3)./K(3)-1;
@@ -75,26 +79,30 @@ function testVinetEos_KPeqn(testCase)
     TOL = 1e-5;
     V0 = 10;
     K0 = 200;
-    peos = [V0,K0,4.5];
+    pEos = [V0,K0,4.5];
 
     V = V0*.7*(1+1e-4*[-2:2]);
-    [P dE K KP] = VinetEos(V,peos);
+    [P K dF KP] = VinetEos(V,pEos);
 
     KPnum = central_diff(K,P);
     calcErr = KPnum(3)./KP(3)-1;
 
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
+
+%%%%%%%%%%%%%%%%%%%%%%
+%  Test Power Law fun
+%%%%%%%%%%%%%%%%%%%%%%
 function testDebyePowerLaw_Tdeb0(testCase)
     V0 = 10;
 
     Tdeb0 = 500;
     gam0 = 1.7;
     q = 1.2;
-    peosHot = [Tdeb0 gam0 q];
+    pHotEos = [Tdeb0 gam0 q];
 
     V = V0;
-    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
+    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,pHotEos);
     verifyEqual(testCase,Tdeb,Tdeb0)
 end
 function testDebyePowerLaw_gam0(testCase)
@@ -103,10 +111,10 @@ function testDebyePowerLaw_gam0(testCase)
     Tdeb0 = 500;
     gam0 = 1.7;
     q = 1.2;
-    peosHot = [Tdeb0 gam0 q];
+    pHotEos = [Tdeb0 gam0 q];
 
     V = V0;
-    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
+    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,pHotEos);
     verifyEqual(testCase,gam,gam0)
 end
 function testDebyePowerLaw_TdebEqn(testCase)
@@ -116,10 +124,10 @@ function testDebyePowerLaw_TdebEqn(testCase)
     Tdeb0 = 500;
     gam0 = 1.7;
     q = 1.2;
-    peosHot = [Tdeb0 gam0 q];
+    pHotEos = [Tdeb0 gam0 q];
 
     V = V0*.7*(1+1e-4*[-2:2]);
-    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
+    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,pHotEos);
     gamnum = -V./Tdeb.*central_diff(Tdeb,V);
 
     calcErr = gamnum(3) - gam(3);
@@ -132,49 +140,119 @@ function testDebyePowerLaw_dgamdVEqn(testCase)
     Tdeb0 = 500;
     gam0 = 1.7;
     q = 1.2;
-    peosHot = [Tdeb0 gam0 q];
+    pHotEos = [Tdeb0 gam0 q];
 
     V = V0*.7*(1+1e-4*[-2:2]);
-    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
+    [Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,pHotEos);
 
     dgamdVnum = central_diff(gam,V);
 
     calcErr = dgamdVnum(3) - dgamdV(3);
     verifyTrue(testCase,abs(calcErr)<TOL)
 end
-function testMieGrunDebyeHotEos_Phot0(testCase)
-    V0 = 10;
-    T0 = 300;
-    Natom = 4;
-    Tdeb0 = 500;
-    gam0 = 1.5;
-    q = 1.2;
-    peosHot = [Tdeb0 gam0 q 1.0];
+
+%%%%%%%%%%%%%%%%%%%%%%
+%  Test Tange 09 fun
+%%%%%%%%%%%%%%%%%%%%%%
+function testDebyeTange_Tdeb0(testCase)
+    V0 = 74.698;
+
+    Tdeb0 = 761;
+    gam0  = 1.442;
+    a = 0.138;
+    b = 5.4;
+    pHotEos = [Tdeb0 gam0 a b];
 
     V = V0;
-    T = T0;
-    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
-    [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
-        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,@debyePowerLaw);
-
-    verifyEqual(testCase,Phot,0);
+    [Tdeb, gam, dgamdV] = debyeTange(V,V0,pHotEos);
+    verifyEqual(testCase,Tdeb,Tdeb0)
 end
-function testMieGrunDebyeHotEos_Ehot0(testCase)
+function testDebyeTange_gam0(testCase)
+    V0 = 74.698;
+
+    Tdeb0 = 761;
+    gam0  = 1.442;
+    a = 0.138;
+    b = 5.4;
+    pHotEos = [Tdeb0 gam0 a b];
+
+    V = V0;
+    [Tdeb, gam, dgamdV] = debyeTange(V,V0,pHotEos);
+    verifyEqual(testCase,gam,gam0)
+end
+function testDebyeTange_TdebEqn(testCase)
+    TOL = 1e-5;
+    V0 = 74.698;
+
+    Tdeb0 = 761;
+    gam0  = 1.442;
+    a = 0.138;
+    b = 5.4;
+    pHotEos = [Tdeb0 gam0 a b];
+
+    V = V0*.7*(1+1e-4*[-2:2]);
+    [Tdeb, gam, dgamdV] = debyeTange(V,V0,pHotEos);
+    gamnum = -V./Tdeb.*central_diff(Tdeb,V);
+
+    calcErr = gamnum(3) - gam(3);
+    verifyTrue(testCase,abs(calcErr)<TOL)
+end
+function testDebyeTange_dgamdVEqn(testCase)
+    TOL = 1e-5;
+    V0 = 74.698;
+
+    Tdeb0 = 761;
+    gam0  = 1.442;
+    a = 0.138;
+    b = 5.4;
+    pHotEos = [Tdeb0 gam0 a b];
+
+    V = V0*.7*(1+1e-4*[-2:2]);
+    [Tdeb, gam, dgamdV] = debyeTange(V,V0,pHotEos);
+
+    dgamdVnum = central_diff(gam,V);
+
+    calcErr = dgamdVnum(3) - dgamdV(3);
+    verifyTrue(testCase,abs(calcErr)<TOL)
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+%  Test MieGrunDebye Hot Eos fun
+%%%%%%%%%%%%%%%%%%%%%%
+function testMieGrunDebyeHotEos_PHot0(testCase)
     V0 = 10;
     T0 = 300;
     Natom = 4;
     Tdeb0 = 500;
     gam0 = 1.5;
     q = 1.2;
-    peosHot = [Tdeb0 gam0 q 1.0];
+    pHotEos = [Tdeb0 gam0 q 1.0];
 
     V = V0;
     T = T0;
-    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
-    [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
-        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,@debyePowerLaw);
+    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,pHotEos);
+    [PHot,KTHot,CvHot,gammaHot,EHot,TdebyeHot] = ...
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,pHotEos,@debyePowerLaw);
 
-    verifyEqual(testCase,Ehot,0);
+    verifyEqual(testCase,PHot,0);
+end
+function testMieGrunDebyeHotEos_EHot0(testCase)
+    V0 = 10;
+    T0 = 300;
+    Natom = 4;
+    Tdeb0 = 500;
+    gam0 = 1.5;
+    q = 1.2;
+    pHotEos = [Tdeb0 gam0 q 1.0];
+
+    V = V0;
+    T = T0;
+    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,pHotEos);
+    [PHot,KTHot,CvHot,gammaHot,EHot,TdebyeHot] = ...
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,pHotEos,@debyePowerLaw);
+
+    verifyEqual(testCase,EHot,0);
 end
 function testMieGrunDebyeHotEos_CvEqn(testCase)
     TOL = 1e-5;
@@ -184,21 +262,21 @@ function testMieGrunDebyeHotEos_CvEqn(testCase)
     Tdeb0 = 500;
     gam0 = 1.5;
     q = 1.2;
-    peosHot = [Tdeb0 gam0 q 1.0];
+    pHotEos = [Tdeb0 gam0 q 1.0];
 
     V = V0*.7;
     T = Tdeb0*(1+1e-4*[-2:2]);
 
-    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
-    [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
-        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,@debyePowerLaw);
+    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,pHotEos);
+    [PHot,KTHot,CvHot,gammaHot,EHot,TdebyeHot] = ...
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,pHotEos,@debyePowerLaw);
 
-    Cvnum = central_diff(Ehot,T);
-    calcErr = Cvnum(3)./Cvhot(3)-1;
+    Cvnum = central_diff(EHot,T);
+    calcErr = Cvnum(3)./CvHot(3)-1;
 
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
-function testMieGrunDebyeHotEos_KhotEqn(testCase)
+function testMieGrunDebyeHotEos_KHotEqn(testCase)
     TOL = 1e-5;
     V0 = 10;
     T0 = 300;
@@ -206,17 +284,17 @@ function testMieGrunDebyeHotEos_KhotEqn(testCase)
     Tdeb0 = 500;
     gam0 = 1.5;
     q = 1.2;
-    peosHot = [Tdeb0 gam0 q 1.0];
+    pHotEos = [Tdeb0 gam0 q 1.0];
 
     V = V0*.7*(1+1e-4*[-2:2]);
     T = Tdeb0;
 
-    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,peosHot);
-    [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
-        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,@debyePowerLaw);
+    %[Tdeb, gam, dgamdV] = debyePowerLaw(V,V0,pHotEos);
+    [PHot,KTHot,CvHot,gammaHot,EHot,TdebyeHot] = ...
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,pHotEos,@debyePowerLaw);
 
-    Khotnum = -V.*central_diff(Phot,V);
-    calcErr = Khotnum(3)./KThot(3)-1;
+    KHotnum = -V.*central_diff(PHot,V);
+    calcErr = KHotnum(3)./KTHot(3)-1;
 
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
