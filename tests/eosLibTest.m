@@ -85,3 +85,100 @@ function testVinetEos_KPeqn(testCase)
 
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
+
+function testMieGrunDebyeHotEos_Phot0(testCase)
+    V0 = 10;
+    T0 = 300;
+    Natom = 4;
+    Tdeb0 = 500;
+    gam0 = 1.5;
+    % Test with simple fixed gamma model
+    %q = 1;
+    peosHot = [Tdeb0 gam0 1 1.0];
+
+    V = V0;
+    T = T0;
+    debyeTderivsFun = @(V,V0,p)( deal(...
+        p(1)*exp(-1./p(3)*(p(2)*(V/V0).^p(3)-p(2))),...
+        p(2)*(V/V0).^p(3),...
+        p(3)*p(2)*(V/V0).^p(3)./V ));
+    [Tdeb, gam, dgamdV] = debyeTderivsFun(V,V0,peosHot(1:end-1));
+
+    [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,debyeTderivsFun);
+
+    verifyEqual(testCase,Phot,0);
+end
+function testMieGrunDebyeHotEos_Ehot0(testCase)
+    V0 = 10;
+    T0 = 300;
+    Natom = 4;
+    Tdeb0 = 500;
+    gam0 = 1.5;
+    % Test with simple fixed gamma model
+    %q = 1;
+    peosHot = [Tdeb0 gam0 1 1.0];
+
+    V = V0;
+    T = T0;
+    debyeTderivsFun = @(V,V0,p)( deal(p(1)*exp(-p(2)*log(V./V0)),...
+        p(2)*ones(size(V)), zeros(size(V))) );
+    [Tdeb, gam, dgamdV] = debyeTderivsFun(V,V0,peosHot(1:end-1));
+
+    [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,debyeTderivsFun);
+
+    verifyEqual(testCase,Ehot,0);
+end
+function testMieGrunDebyeHotEos_CvEqn(testCase)
+    TOL = 1e-5;
+    V0 = 10;
+    T0 = 300;
+    Natom = 4;
+    Tdeb0 = 500;
+    gam0 = 1.5;
+    % Test with simple fixed gamma model
+    %q = 1;
+    peosHot = [Tdeb0 gam0 1 1.0];
+
+    V = V0*.7;
+    T = Tdeb0*(1+1e-4*[-2:2]);
+
+    debyeTderivsFun = @(V,V0,p)( deal(p(1)*exp(-p(2)*log(V./V0)),...
+        p(2)*ones(size(V)), zeros(size(V))) );
+    [Tdeb, gam, dgamdV] = debyeTderivsFun(V,V0,peosHot(1:end-1));
+
+    [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,debyeTderivsFun);
+
+    Cvnum = central_diff(Ehot,T);
+    calcErr = Cvnum(3)./Cvhot(3)-1;
+
+    verifyTrue(testCase,all(abs(calcErr) < TOL));
+end
+function testMieGrunDebyeHotEos_KhotEqn(testCase)
+    TOL = 1e-5;
+    V0 = 10;
+    T0 = 300;
+    Natom = 4;
+    Tdeb0 = 500;
+    gam0 = 1.5;
+    % Test with simple fixed gamma model
+    %q = 1;
+    peosHot = [Tdeb0 gam0 1 1.0];
+
+    V = V0*.7*(1+1e-4*[-2:2]);
+    T = Tdeb0;
+
+    debyeTderivsFun = @(V,V0,p)( deal(p(1)*exp(-p(2)*log(V./V0)),...
+        p(2)*ones(size(V)), zeros(size(V))) );
+    [Tdeb, gam, dgamdV] = debyeTderivsFun(V,V0,peosHot(1:end-1));
+
+    [Phot,Ehot,Cvhot,KThot,Tdebyehot,gammahot] = ...
+        MieGrunDebyeHotEos(V,T,V0,T0,Natom,peosHot,debyeTderivsFun);
+
+    Khotnum = -V.*central_diff(Phot,V);
+    calcErr = Khotnum(3)./KThot(3)-1;
+
+    verifyTrue(testCase,all(abs(calcErr) < TOL));
+end

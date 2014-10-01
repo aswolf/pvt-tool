@@ -1,4 +1,5 @@
 function [Pthm,KTthm,Cvthm,gamma,delEthm] = calcPthmMGDpowlaw(V,T,V0,T0,peosHot)
+    MieGrunDebyeEos(V,T,V0,T0,Natom,peosHot,gammaTdebFun)
     % T in K
     % V in Ang^3
     % P in GPa
