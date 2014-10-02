@@ -348,14 +348,14 @@ function testCalcPressThermAddEos_Tange2012(testCase)
     pColdEos = [V0 K0 KP0];
     pHotEos  = [Tdeb0 gam0 q 1.0];
     
-    coldFunEos = @VinetEos;
+    coldEosFun = @VinetEos;
     debyeDerivsFun = @debyePowerLaw;
-    hotFunEos  = @(V,T,V0,T0,pHotEos)...
+    hotEosFun  = @(V,T,V0,T0,pHotEos)...
         (MieGrunDebyeHotEos(V,T,V0,T0,Natom,pHotEos,debyeDerivsFun));
     elecThermPressFun = [];
 
     [P,KT,Cv,gam] = calcPressThermAddEos(V(:),T(:),T0,pColdEos,pHotEos,...
-        coldFunEos,hotFunEos,elecThermPressFun);
+        coldEosFun,hotEosFun,elecThermPressFun);
     PmodTbl = reshape(P,length(Vrow),[]);
 
     calcErr = PmodTbl-PTbl;
@@ -369,7 +369,7 @@ function testCalcPressThermAddEos_Tange2009(testCase)
     K0 = 160.63;
     KP0= 4.367;
 
-    coldFunEos = @VinetEos;
+    coldEosFun = @VinetEos;
     debyeDerivsFun = @debyeTange;
     Natom = 4*2;
     Tdeb0 = 761;
@@ -444,14 +444,14 @@ function testCalcPressThermAddEos_Tange2009(testCase)
     pColdEos = [V0 K0 KP0];
     pHotEos  = [Tdeb0 gam0 a b 1.0];
     
-    coldFunEos = @VinetEos;
+    coldEosFun = @VinetEos;
     debyeDerivsFun = @debyeTange;
-    hotFunEos  = @(V,T,V0,T0,pHotEos)...
+    hotEosFun  = @(V,T,V0,T0,pHotEos)...
         (MieGrunDebyeHotEos(V,T,V0,T0,Natom,pHotEos,debyeDerivsFun));
     elecThermPressFun = [];
 
     [P,KT,Cv,gam] = calcPressThermAddEos(V(:),T(:),T0,pColdEos,pHotEos,...
-        coldFunEos,hotFunEos,elecThermPressFun);
+        coldEosFun,hotEosFun,elecThermPressFun);
     PmodTbl = reshape(P,length(Vrow),[]);
 
     calcErr = PmodTbl-PTbl;

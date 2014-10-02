@@ -1,11 +1,11 @@
 % calcPressThermAddEos - calc total press using additive thermal contribution
 function [P,KT,Cv,gam] = calcPressThermAddEos(V,T,T0,pColdEos,pHotEos,...
-        coldFunEos,hotFunEos,elecThermPressFun)
+        coldEosFun,hotEosFun,elecThermPressFun)
 
     V0 = pColdEos(1);
 
-    [PCold,KTCold] = coldFunEos(V,pColdEos);
-    [PHot,KTHot,CvHot,gamHot] = hotFunEos(V,T,V0,T0,pHotEos);
+    [PCold,KTCold] = coldEosFun(V,pColdEos);
+    [PHot,KTHot,CvHot,gamHot] = hotEosFun(V,T,V0,T0,pHotEos);
 
     if(isempty(elecThermPressFun))
         Pelec = 0;
