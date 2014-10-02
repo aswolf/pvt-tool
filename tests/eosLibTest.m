@@ -57,8 +57,18 @@ function testVinetEos_KP0(testCase)
     verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
 function testVinetEos_Peqn(testCase)
-    % Not yet implimented
-    verifyTrue(testCase,0);
+    TOL = 1e-5;
+    V0 = 10;
+    K0 = 200;
+    pEos = [V0,K0,4.5];
+
+    V = V0*.7*(1+1e-4*[-2:2]);
+    [P K dF] = VinetEos(V,pEos);
+
+    Pnum = -central_diff(dF,V);
+    calcErr = Pnum(3) - P(3);
+
+    verifyTrue(testCase,all(abs(calcErr) < TOL));
 end
 function testVinetEos_Keqn(testCase)
     TOL = 1e-5;
