@@ -310,6 +310,26 @@ function testMieGrunDebyeHotEos_KHotEqn(testCase)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%
+%  Test MieGrunEinstein Hot Eos fun
+%%%%%%%%%%%%%%%%%%%%%%
+function testMieGrunEinsteinHotEos_PHot0(testCase)
+    TOL = 1e-5;
+    V0 = 10;
+    T0 = 300;
+    Natom = 4;
+    Tdeb0 = 500;
+    gam0 = 1.5;
+    q = 1.2;
+    pHotEos = [Tdeb0 gam0 q 1.0];
+
+    V = V0*.7*(1+1e-4*[-2:2]);
+    T = Tdeb0;
+    [PHot,KTHot,CvHot,gammaHot,EHot,TdebyeHot] = ...
+        MieGrunEinsteinHotEos(V,T,V0,T0,Natom,pHotEos,@debyePowerLaw);
+    verifyTrue(testCase,false);
+end
+
+%%%%%%%%%%%%%%%%%%%%%%
 %  Test ThermAddEos (thermal Pressure form)
 %%%%%%%%%%%%%%%%%%%%%%
 function testCalcPressThermAddEos_Tange2012(testCase)
