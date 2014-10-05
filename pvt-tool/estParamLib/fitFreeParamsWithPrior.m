@@ -1,8 +1,11 @@
 % fitFreeParamsWithPrior - return best-fit params given prior and nLogP Fun
 function [pfit nLogPFun] = fitFreeParamsWithPrior(pinit,fixFlag,...
-        prior,priorcov,wtResidFun,doRobustFit)
+        prior,priorcov,wtResidFun,opt)
 
-    nLogPFun = makeNLogPFun(wtResidFun,prior,priorcov,doRobustFit,[]);
+    optDefault = getEstParamDefaultOpt();
+    opt = setDefaultOpt(opt,optDefault);
+
+    nLogPFun = makeNLogPFun(wtResidFun,prior,priorcov,opt);
     
     % Obtain free parameter subset 
     %   - Update fixFlag to include variables with zero variance prior values
@@ -15,8 +18,8 @@ function [pfit nLogPFun] = fitFreeParamsWithPrior(pinit,fixFlag,...
     end
 
     % Define wrapper function for nLogP to use only free parameters
-    nLogPFreeFun = @(pFree)(nLogPFreeFun(getAllParams(pFree,pinit,fixFlag)));
-    pfitFree = fitParams(pinitFree,nLogPFreeFun);
+    nLogPFreeFun = @(pFree)(nLogPFun(getAllParams(pFree,pinit,fixFlag)));
+    pfitFree = fitParams(pinitFree,nLogPFreeFun,opt);
 
     pfit = pinit;
     pfit(~fixFlag) = pfitFree;

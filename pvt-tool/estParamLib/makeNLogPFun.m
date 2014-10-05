@@ -1,13 +1,8 @@
-function nLogPFun = makeNLogPFun(wtResidFun,prior,priorcov,...
-        doRobustFit,robustNormParam)
-
-    if(isempty(robustNormParam))
-        robustNormParam = 5;
-    end
-
-    % NOTE: robust refers only data fitting, not prior
-    %   - maybe it should apply to both?
-
+% makeNLogPFun - return handle for -logP fun with robust options 
+%
+function nLogPFun = makeNLogPFun(wtResidFun,prior,priorcov,opt)
+    optDefault = getEstParamDefaultOpt();
+    opt = setDefaultOpt(opt,optDefault);
 
     % Filter out unconstrained variables from prior weighting
     %  - unconstrained variables shown by infinite variance
@@ -15,15 +10,20 @@ function nLogPFun = makeNLogPFun(wtResidFun,prior,priorcov,...
     priorcovSub = priorcov(~infVar,~infVar);
     priorHessSub = inv(priorcovSub);
     priorSub = prior(~infVar);
-    applyPriorFlag = ~infVar;
+    ptestSub = ptest(~infVar);
 
-    priorWt = @(ptest)(0.5*(ptest(~infVar)-priorSub)...
-        *priorHessSub*(ptest(~infVar)-priorSub)');
+    % If robust, implement as Student's T distribution
+    nu = opt.robustNormParam;
+    priorMismatch = (ptestSub-priorSub)*priorHessSub*(ptestSub-priorSub)';
+    if(opt.robustPrior)
+        priorWt = @(ptest)(0.5*(nu+1)*sum(log(1+priorMismatch/nu)));
+    else
+        priorWt = @(ptest)(0.5*priorMismatch);
+    end
 
     % Construct total posterior Function nLogPFun
     %   -depends on whether it is robust or not
-    if(doRobustFit)
-        nu = robustNormParam;
+    if(opt.robustFit)
         nLogPFun = @(ptest)(0.5*(nu+1)*sum(log(1+wtResidFun(ptest).^2/nu)) + ...
             priorWt(ptest));
     else
