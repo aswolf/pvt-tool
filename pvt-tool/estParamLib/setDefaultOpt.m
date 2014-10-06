@@ -1,7 +1,8 @@
 % setDefaultOpt - set remaining default options
 function opt = setDefaultOpt(opt,optDefault)
     if(isempty(opt))
-        optDefault = opt;
+        opt = optDefault;
+        return;
     end
     optNameList = fieldnames(optDefault);
     for(i=1:length(optNameList))

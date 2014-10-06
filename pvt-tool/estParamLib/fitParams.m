@@ -7,6 +7,6 @@ function [pfit] = fitParams(pinit,nLogPFun,opt)
     NfitIter  = opt.NfitIter;
     minAlgFun = opt.minAlgFun;
     for(iter=1:NfitIter)
-        [pfit] = minAlgFun(nLogPFun,pfit);
+        [pfit] = minAlgFun(nLogPFun,pfit,opt);
     end
 end

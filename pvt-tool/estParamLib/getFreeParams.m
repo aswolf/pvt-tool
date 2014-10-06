@@ -7,9 +7,10 @@ function [pinitFree,priorFree,priorcovFree] = ...
 
     checkInput(pinit,prior,priorcov,fixFlag);
     
-    isFixed = fixFlag(:) | diag(priorcov)==0;
-    indFix  = find(isFixed);
-    indFree = find(~isFixed);
+    %update fixFlag to include zero values on priorcov diag
+    fixFlag = fixFlag(:) | diag(priorcov)==0;
+    indFix  = find(fixFlag);
+    indFree = find(~fixFlag);
 
     pinitFree = pinit(indFree);
     priorFree = prior(indFree);
@@ -20,6 +21,8 @@ function [pinitFree,priorFree,priorcovFree] = ...
             priorcovFree(i,j) = priorcov(indFree(i),indFree(j));
         end
     end
+
+    checkOutput(pinitFree,priorFree,priorcovFree,fixFlag);
 end
 function checkInput(pinit,prior,priorcov,fixFlag)
     assert(length(pinit) == length(prior),...
@@ -30,6 +33,12 @@ function checkInput(pinit,prior,priorcov,fixFlag)
     assert(all(size(priorcov) == length(prior)*[1 1]),...
         'priorcov must be square matrix with dim. equal to prior length.');
 
-    assert(sum(~fixFlag) == length(pinit),...
+end
+function checkOutput(pinitFree,priorFree,priorcovFree,fixFlag)
+    assert(sum(~fixFlag) == length(pinitFree),...
         'Free param array length must match number of unfixed params.');
+    assert(length(priorFree) == length(pinitFree),...
+        'Free param arrays for init and prior must match length.');
+    assert(all(size(priorcovFree) == length(priorFree)*[1 1]),...
+        'priorcovFree must be square matrix with dim. equal to priorFree length.');
 end

@@ -9,6 +9,8 @@ function optDefault = getEstParamDefaultOpt()
     optDefault.robustNormParam = 5;
     % use standard fminunc function for finding minimum
     optDefault.minAlgFun = @fminunc;
+    optDefault.LargeScale = 'off';
+    optDefault.Display = 'off';
     % repeat min operation to be sure at min
     optDefault.NfitIter  = 2;
 end
