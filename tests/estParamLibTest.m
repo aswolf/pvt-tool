@@ -163,3 +163,89 @@ function testMkNLogPFun_distRobust(testCase)
     % students t cdf
     verifyTrue(testCase,false);
 end
+
+function testCovToCorr_simple(testCase)
+    TOL = 1e-6;
+    pcorr0 = [1 .5; .5 1];
+    perr0  = [3 10];
+    perrM0 = perr0(:)*perr0(:)';
+    pcov = perrM0.*pcorr0;
+    
+    [perr,pcorr] = covToCorr(pcov);
+
+    verifyTrue(testCase, all(perr(:)-perr0(:)<TOL));
+    verifyTrue(testCase, all(pcorr(:)-pcorr0(:)<TOL));
+end
+function testCovToCorr_zeroElem(testCase)
+    TOL = 1e-6;
+    pcorr0 = [1 .5 0 ; .5 1 0; 0 0 1];
+    perr0  = [3 10 0];
+    perrM0 = perr0(:)*perr0(:)';
+    pcov = perrM0.*pcorr0;
+    
+    [perr,pcorr] = covToCorr(pcov);
+
+    verifyTrue(testCase, all(perr(:)-perr0(:)<TOL));
+    verifyTrue(testCase, all(pcorr(:)-pcorr0(:)<TOL));
+end
+function testCovToCorr_InfElem(testCase)
+    TOL = 1e-6;
+    pcorr0 = [1 .5 0 ; .5 1 0; 0 0 1];
+    perr0  = [3 10 Inf];
+    perrM0 = perr0(:)*perr0(:)';
+    pcov = perrM0.*pcorr0;
+    pcov(isnan(pcov)) = 0;
+    
+    [perr,pcorr] = covToCorr(pcov);
+
+    verifyTrue(testCase, all(perr(:)==perr0(:)));
+    verifyTrue(testCase, all(pcorr(:)-pcorr0(:)<TOL));
+end
+function testCorrToCov_simple(testCase)
+    TOL = 1e-6;
+    pcorr0 = [1 .5; .5 1];
+    perr0  = [3 10];
+    perrM0 = perr0(:)*perr0(:)';
+    pcov0 = perrM0.*pcorr0;
+    
+    pcov = corrToCov(perr0,pcorr0);
+
+    verifyTrue(testCase, all(pcov(:)-pcov0(:)<TOL));
+end
+function testCorrToCov_zeroElem(testCase)
+    TOL = 1e-6;
+    pcorr0 = [1 .5 0 ; .5 1 0; 0 0 1];
+    perr0  = [3 10 0];
+    perrM0 = perr0(:)*perr0(:)';
+    pcov0 = perrM0.*pcorr0;
+    
+    pcov = corrToCov(perr0,pcorr0);
+
+    verifyTrue(testCase, all(pcov(:)-pcov0(:)<TOL));
+end
+function testCorrToCov_InfElem(testCase)
+    pcorr0 = [1 .5 0 ; .5 1 0; 0 0 1];
+    perr0  = [3 10 Inf];
+    perrM0 = perr0(:)*perr0(:)';
+    pcov0 = perrM0.*pcorr0;
+    pcov0(isnan(pcov0)) = 0;
+    
+    pcov = corrToCov(perr0,pcorr0);
+
+    verifyTrue(testCase, all(pcov(:)==pcov0(:)));
+end
+function testCorrToCov_InfElemWithCorr(testCase)
+    pcorr0 = [1 .5 .1 ; .5 1 0; .1 0 1];
+    perr0  = [3 10 Inf];
+    perrM0 = perr0(:)*perr0(:)';
+    pcov0 = perrM0.*pcorr0;
+    pcov0(isnan(pcov0)) = 0;
+    pcov0(isinf(pcov0)) = 0;
+    infInd = find(isinf(perr0));
+    pcov0(sub2ind(size(pcov0),infInd,infInd)) = Inf;
+
+    
+    pcov = corrToCov(perr0,pcorr0);
+
+    verifyTrue(testCase, all(pcov(:)==pcov0(:)));
+end
