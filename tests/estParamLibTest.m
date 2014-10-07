@@ -145,6 +145,15 @@ end
 function testFitFreeParamsWithPrior(testCase)
     verifyTrue(testCase,false);
 end
+function testMkNLogPFun_optDefaults(testCase)
+    optIn.NfitIter = 5;
+    optDefault = getEstParamDefaultOpt();
+    opt = setDefaultOpt(optIn,optDefault);
+    optNameList = fieldnames(optDefault);
+    optInList = fieldnames(opt);
+    otherFields = setdiff(optNameList,optInList);
+    verifyTrue(testCase,isempty(otherFields));
+end
 function testMkNLogPFun_dist(testCase)
     % Test that distribution of costfunction values matches a chi sqr distbn
     verifyTrue(testCase,false);

@@ -10,15 +10,15 @@ function nLogPFun = makeNLogPFun(wtResidFun,prior,priorcov,opt)
     priorcovSub = priorcov(~infVar,~infVar);
     priorHessSub = inv(priorcovSub);
     priorSub = prior(~infVar);
-    ptestSub = ptest(~infVar);
 
     % If robust, implement as Student's T distribution
     nu = opt.robustNormParam;
-    priorMismatch = (ptestSub-priorSub)*priorHessSub*(ptestSub-priorSub)';
+    priorMismatch = @(ptest)((ptest(~infVar)-priorSub)*priorHessSub*...
+        (ptest(~infVar)-priorSub)');
     if(opt.robustPrior)
-        priorWt = @(ptest)(0.5*(nu+1)*sum(log(1+priorMismatch/nu)));
+        priorWt = @(ptest)(0.5*(nu+1)*sum(log(1+priorMismatch(ptest)/nu)));
     else
-        priorWt = @(ptest)(0.5*priorMismatch);
+        priorWt = @(ptest)(0.5*priorMismatch(ptest));
     end
 
     % Construct total posterior Function nLogPFun

@@ -9,12 +9,13 @@ function [pfit nLogPFun] = fitFreeParamsWithPrior(pinit,fixFlag,...
     
     % Obtain free parameter subset 
     %   - Update fixFlag to include variables with zero variance prior values
-    [pinitFree,priorFree,priorcovFree,fixFlag] = ...
+    [pinitFree,priorFree,priorcovFree] = ...
         getFreeParams(pinit,prior,priorcov,fixFlag);
 
     % Test if any free parameters remain
     if(all(fixFlag==1))
         pfit = pinit;
+        return;
     end
 
     % Define wrapper function for nLogP to use only free parameters

@@ -1,5 +1,6 @@
 % estParamCov - estimate param. covariance from numerical hess of -LogP fun
 %
+%  Need to add fixFlag dependence
 function [pfitcov] = estParamCov(nLogPFun,pfit,opt)
     % To be implemented later
     %opt.pscl

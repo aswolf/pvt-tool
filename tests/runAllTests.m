@@ -6,3 +6,6 @@ disp('*****************')
 disp('*****************')
 result = runtests('estParamLibTest.m');
 
+disp('*****************')
+disp('*****************')
+result = runtests('fitLibTest.m');
