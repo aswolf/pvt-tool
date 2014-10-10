@@ -1,5 +1,6 @@
 function [perr,pcorr] = covToCorr(pcov)
     pcovT = pcov';
+    assert(all(diag(pcov)~=0),'cov matrix cannot have zero diagonal elements');
     assert(all(pcov(:) == pcovT(:)),'cov matrix is invalid because it is not symmetric');
     indFin = ~isinf(diag(pcov));
     eigcov = eig(pcov(indFin,indFin));

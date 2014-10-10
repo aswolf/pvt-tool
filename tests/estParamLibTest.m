@@ -23,19 +23,69 @@ function testGetFreeParams_subset(testCase)
     verifyTrue(testCase,all(priorFreeTest==prior(~fixFlag)));
     verifyTrue(testCase,all(reshape(priorcovFree==priorcovFreeTest,[],1)));
 end
-function testGetFreeParams_zeroprior(testCase)
+function testGetFreeParams_fixFlag(testCase)
     pinit   = [0 1 2 3 4];
     prior   = [5 6 7 8 9];
-    priorcov = ones(length(prior));
-    priorcov(1,1) = 0;
-    priorcov(4,4) = 0;
-    fixFlag = [0 0 0 0 0];
+    priorcov = eye(length(prior));
+    fixFlag = [1 0 0 4 0];
     
     [pinitFreeTest,priorFreeTest,priorcovFreeTest] = ...
         getFreeParams(pinit,prior,priorcov,fixFlag);
-    fixFlagAll = fixFlag;
-    fixFlagAll(diag(priorcov)==0) = 1;
-    verifyTrue(testCase,all(pinitFreeTest==pinit(~fixFlagAll)));
+    verifyTrue(testCase,all(pinitFreeTest==pinit(~fixFlag)));
+end
+%function testGetFreeParams_zeroprior(testCase)
+%    keyboard;
+%    pinit   = [0 1 2 3 4];
+%    prior   = [5 6 7 8 9];
+%    priorcov = ones(length(prior));
+%    priorcov(1,1) = 0;
+%    priorcov(4,4) = 0;
+%    fixFlag = [0 0 0 0 0];
+%    
+%
+%    assertError(testCase,@()(getFreeParams(pinit,prior,priorcov,fixFlag)),...
+%        '''''');
+%
+%    [pinitFreeTest,priorFreeTest,priorcovFreeTest] = ...
+%        getFreeParams(pinit,prior,priorcov,fixFlag);
+%    fixFlagAll = fixFlag;
+%    fixFlagAll(diag(priorcov)==0) = 1;
+%    verifyTrue(testCase,all(pinitFreeTest==pinit(~fixFlagAll)));
+%end
+function testUpdateFreeCov_subset(testCase)
+    prior = [1 2 3 4 5 6];
+    fixFlagSubset = [0 0 0 1 1 1];
+    pinit = prior + [.1,-.2,+.3,0,0,0];
+    priorcov = diag(3*ones(size(prior)));
+
+    [pinitFree,priorFree,priorcovFree] = ...
+        getFreeParams(pinit,prior,priorcov,fixFlagSubset);
+
+    pFree = pinitFree +10;
+    pcovFree = eye(length(pFree));
+    pcovFree(1,3) = .5;
+    pcovFree(3,1) = .5;
+
+    [p]    = getAllParams(pFree,prior,fixFlagSubset);
+    [pcov] = updateFreeCov(pcovFree,priorcov,fixFlagSubset);
+
+    verifyTrue(testCase,all(size(p)==size(prior)));
+    verifyTrue(testCase,all(size(pcov)==size(priorcov)));
+    verifyTrue(testCase,all(reshape(pcov(1:3,1:3)==pcovFree,[],1)));
+    verifyTrue(testCase,all(reshape(pcov(4:6,4:6) == priorcov(4:6,4:6),[],1)));
+end
+function testUpdateFreeCov_nofix(testCase)
+    prior = [1 2 3 4 5 6];
+    fixFlag = [0 0 0 0 0 0];
+    pinit = prior + [.1,-.2,+.3,-.4,-.5,-.6];
+    priorcov = diag(3*ones(size(prior)));
+
+    pcovFree = eye(size(priorcov));
+
+    [pcov] = updateFreeCov(pcovFree,priorcov,fixFlag);
+
+    verifyTrue(testCase,all(size(pcov)==size(priorcov)));
+    verifyTrue(testCase,all(reshape(pcov==pcovFree,[],1)));
 end
 
 function testGetEstParamDefaultOpt(testCase)
@@ -103,23 +153,25 @@ function testFitParams_corrNd(testCase)
     %verifyTrue(testCase,all(abs(pfit-[0 0]) < TOL));
 end
 
-function testEstParamCov_uncorr(testCase)
+function testEstParamCov_uncorrQuad(testCase)
     TOL = 1e-5;
     nLogPFun = @(p)(0.5*sum(p.^2));
     pfit = [0 0 0 0];
     opt = [];
-    [pfitcov] = estParamCov(nLogPFun,pfit,opt);
+    fixFlag = [];
+    [pfitcov] = estParamCov(nLogPFun,pfit,fixFlag,opt);
 
     dpfitcov = pfitcov - eye(length(pfit));
     verifyTrue(testCase,all(abs(dpfitcov(:)) < TOL));
 end
-function testEstParamCov_uncorrScl(testCase)
+function testEstParamCov_uncorrSclQuad(testCase)
     TOL = 1e-5;
     pSig = [1 3 10 30];
     nLogPFun = @(p)(0.5*sum((p./pSig).^2));
     pfit = [0 0 0 0];
     opt = [];
-    [pfitcov] = estParamCov(nLogPFun,pfit,opt);
+    fixFlag = [];
+    [pfitcov] = estParamCov(nLogPFun,pfit,fixFlag,opt);
 
     dpfitcov = pfitcov - diag(pSig.^2);
     verifyTrue(testCase,all(abs(dpfitcov(:)) < TOL));
@@ -133,7 +185,8 @@ function testEstParamCov_corr2d(testCase)
     nLogPFun = @(p)(0.5*p*phess*p');
     pfit = [0 0];
     opt = [];
-    [pfitcov] = estParamCov(nLogPFun,pfit,opt)
+    fixFlag = [];
+    [pfitcov] = estParamCov(nLogPFun,pfit,fixFlag,opt)
 
     dpfitcov = pfitcov - pcov;
     verifyTrue(testCase,all(abs(dpfitcov(:)) < TOL));
@@ -176,18 +229,6 @@ function testCovToCorr_simple(testCase)
     verifyTrue(testCase, all(perr(:)-perr0(:)<TOL));
     verifyTrue(testCase, all(pcorr(:)-pcorr0(:)<TOL));
 end
-function testCovToCorr_zeroElem(testCase)
-    TOL = 1e-6;
-    pcorr0 = [1 .5 0 ; .5 1 0; 0 0 1];
-    perr0  = [3 10 0];
-    perrM0 = perr0(:)*perr0(:)';
-    pcov = perrM0.*pcorr0;
-    
-    [perr,pcorr] = covToCorr(pcov);
-
-    verifyTrue(testCase, all(perr(:)-perr0(:)<TOL));
-    verifyTrue(testCase, all(pcorr(:)-pcorr0(:)<TOL));
-end
 function testCovToCorr_InfElem(testCase)
     TOL = 1e-6;
     pcorr0 = [1 .5 0 ; .5 1 0; 0 0 1];
@@ -205,17 +246,6 @@ function testCorrToCov_simple(testCase)
     TOL = 1e-6;
     pcorr0 = [1 .5; .5 1];
     perr0  = [3 10];
-    perrM0 = perr0(:)*perr0(:)';
-    pcov0 = perrM0.*pcorr0;
-    
-    pcov = corrToCov(perr0,pcorr0);
-
-    verifyTrue(testCase, all(pcov(:)-pcov0(:)<TOL));
-end
-function testCorrToCov_zeroElem(testCase)
-    TOL = 1e-6;
-    pcorr0 = [1 .5 0 ; .5 1 0; 0 0 1];
-    perr0  = [3 10 0];
     perrM0 = perr0(:)*perr0(:)';
     pcov0 = perrM0.*pcorr0;
     

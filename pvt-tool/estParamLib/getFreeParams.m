@@ -8,7 +8,7 @@ function [pinitFree,priorFree,priorcovFree] = ...
     checkInput(pinit,prior,priorcov,fixFlag);
     
     %update fixFlag to include zero values on priorcov diag
-    fixFlag = fixFlag(:) | diag(priorcov)==0;
+    %fixFlag = fixFlag(:) | diag(priorcov)==0;
     indFix  = find(fixFlag);
     indFree = find(~fixFlag);
 
@@ -32,6 +32,9 @@ function checkInput(pinit,prior,priorcov,fixFlag)
 
     assert(all(size(priorcov) == length(prior)*[1 1]),...
         'priorcov must be square matrix with dim. equal to prior length.');
+    assert(all(diag(priorcov)~=0),...
+        ['Diagonal elements of cov matrix cannot be zero. '... 
+        'Use fixFlag to fix params']);
 
 end
 function checkOutput(pinitFree,priorFree,priorcovFree,fixFlag)
@@ -41,4 +44,7 @@ function checkOutput(pinitFree,priorFree,priorcovFree,fixFlag)
         'Free param arrays for init and prior must match length.');
     assert(all(size(priorcovFree) == length(priorFree)*[1 1]),...
         'priorcovFree must be square matrix with dim. equal to priorFree length.');
+    assert(all(diag(priorcovFree)~=0),...
+        ['Diagonal elements of cov matrix cannot be zero. '... 
+        'Should not be possible for free parameters. Needs immediate debugging.']);
 end

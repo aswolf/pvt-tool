@@ -1,7 +1,6 @@
 % MieGrunDebyeHotEos - calculate Debye thermal contribution to P, E, etc
 function [PHot,KTHot,CvHot,gammaHot,EHot,TdebyeHot] = ...
-        MieGrunDebyeHotEos(V,T,V0,T0,Natom,pHotEos,debyeDerivsFun)
-
+        MieGrunDebyeHotEos(V,T,V0,T0,pHotEos,Natom,debyeDerivsFun)
     CvFac = pHotEos(end);
 
     % T in K

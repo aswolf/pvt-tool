@@ -1,20 +1,20 @@
 % calcPressThermAddEos - calc total press using additive thermal contribution
 function [P,KT,Cv,gam] = calcPressThermAddEos(V,T,T0,pColdEos,pHotEos,...
-        coldEosFun,hotEosFun,elecThermPressFun)
-
+        coldEosFun,hotEosFun,hotExtraInputs,elecThermPressFun)
     V0 = pColdEos(1);
 
     [PCold,KTCold] = coldEosFun(V,pColdEos);
-    [PHot,KTHot,CvHot,gamHot] = hotEosFun(V,T,V0,T0,pHotEos);
+    [PHot,KTHot,CvHot,gamHot] = hotEosFun(V,T,V0,T0,pHotEos,hotExtraInputs);
 
     if(isempty(elecThermPressFun))
         Pelec = 0;
         Cvelec = 0;
         dPdT_Velec = 0;
     else
-        % Assumes that electronic thermal pressure is independent of volume
+        % Assumes that added thermal pressure is independent of volume
+        %    -> relevant for electronic pressure contribution in metals
         [Pelec Cvelec dPdT_Velec] = elecThermPressFun(T);
-        % Check whether electronic heat capacity and thermal press derivs are
+        % Check whether added heat capacity and thermal press derivs are
         % calculated
         if(isempty(Cvelec))
             Cvelec = zeros(size(Pelec));

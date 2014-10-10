@@ -1,5 +1,6 @@
 function [pcov] = corrToCov(perr,pcorr)
     pcorrT = pcorr';
+    assert(all(perr ~= 0),'perr cannot have zero-valued elements.');
     assert(all(pcorr(:) == pcorrT(:)),'corr matrix is invalid because it is not symmetric');
     eigcorr = eig(pcorr);
     assert( all(eigcorr>= 0),'corr matrix is invalid because it is not symmetric');
