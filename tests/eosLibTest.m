@@ -329,6 +329,12 @@ function testMieGrunEinsteinHotEos_PHot0(testCase)
     verifyTrue(testCase,false);
 end
 
+%%%%%%%%%%%%%%%%%%%%%
+%  Test calc thermExpTrend
+%%%%%%%%%%%%%%%%%%%%%
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%
 %  Test ThermAddEos (thermal Pressure form)
 %%%%%%%%%%%%%%%%%%%%%%

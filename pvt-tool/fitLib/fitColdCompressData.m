@@ -24,5 +24,9 @@ function [pfit pfitcov nLogPFun] = fitColdCompressData(pInitEos,fixFlag,...
     [pfit nLogPFun] = fitFreeParamsWithPrior(pInitEos,fixFlag,...
         priorEos,priorcovEos,wtResidFun,opt);
 
+    if(all(fixFlag==1))
+        pfitcov = diag(NaN*ones(size(fixFlag)));
+        return
+    end
     [pfitcov] = estParamCov(nLogPFun,pfit,fixFlag,opt);
 end

@@ -1,42 +1,29 @@
-% Run this from the current directory
+
 angChar = char(197);
 
 % Set reference temperature
 T0 = 300;
 
 % Analyze Tange (2012) pv data (using MgO press scale of Tange 2009)
-filenm = '../data/Tange2012pvdata.txt';
-datreadT12 = importdata(filenm,' ',4);
-
+datreadT12 = importdata('Tange2012pvdata.txt',' ',4);
 %data_temp = cell2mat(textscan(fopen('test_file.txt'),'%f %f %f %f %f'));
 
 run_colT12  = 1;
 P_colT12    = 14;
-PErr_colT12 = 15;
+Perr_colT12 = 15;
 T_colT12    = 2;
-TErr_colT12 = 3;
+Terr_colT12 = 3;
 V_colT12    = 10;
-VErr_colT12 = 11;
-VMark_colT12    = 12;
-VMarkErr_colT12 = 13;
+Verr_colT12 = 11;
+Vmark_colT12    = 12;
+Vmarkerr_colT12 = 13;
 
-runID_T12 = datreadT12.data(:,run_colT12);
-measGrpID_T12 = roundn(runID,2)/1e2;
-P_T12         = datreadT12.data(:,P_colT12);
-PErr_T12      = datreadT12.data(:,PErr_colT12);
-VMark_T12     = datreadT12.data(:,VMark_colT12);
-VMarkErr_T12  = datreadT12.data(:,VMarkErr_colT12);
-VSamp_T12     = datreadT12.data(:,V_colT12);
-VSampErr_T12  = datreadT12.data(:,VErr_colT12);
-T_T12         = datreadT12.data(:,T_colT12);
-TErr_T12      = datreadT12.data(:,TErr_colT12);
-TErr_T12(measGrpID_T12==1 & abs(T_T12/T0-1) > 3e-2) = 1;
-
-pvPvtT12 = initPvtData(measGrpID_T12,P_T12,PErr_T12,VMark_T12,VMarkErr_T12,VSamp_T12,VSampErr_T12,T_T12,Terr_T12);
-scatter(pvPvtT12.P,pvPvtT12.VSamp,50,pvPvtT12.T,'o')
-pvPvtT12.PErr
-
-
+pvdatT12 = initEosDataset('Tange2012',runID,...
+    datreadT12.data(:,P_colT12), datreadT12.data(:,Perr_colT12),...
+    datreadT12.data(:,V_colT12), datreadT12.data(:,Verr_colT12),...
+    datreadT12.data(:,Vmark_colT12), datreadT12.data(:,Vmarkerr_colT12),...
+    datreadT12.data(:,T_colT12), datreadT12.data(:,Terr_colT12),...
+    0);
 
 % Set 1 K errors for heated Sintered Diamond Multianvil
 pvdatT12.Terr(pvdatT12.runID==1 & abs(pvdatT12.T/T0-1) > 3e-2) = 1;

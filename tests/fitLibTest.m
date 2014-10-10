@@ -24,6 +24,29 @@ function testFitColdCompressData_zeroMeasErr(testCase)
 
     verifyTrue(testCase,all(abs(relErr)<TOL));
 end
+function testFitColdCompressData_fixSubset(testCase)
+    TOL = 1e-4;
+
+    pEos = [150 250 4.5];
+    coldEosFun = @VinetEos;
+    priorEos = pEos;
+    priorcovEos = diag(Inf*[1 1 1]);
+
+    V = pEos(1)*linspace(.7,1,10)';
+    Pmod = coldEosFun(V,pEos);
+    PerrTot = 1e-6*ones(size(V));
+    P = Pmod;
+    pInitEos = pEos + [0 -15 -.5];
+    %PInit = coldEosFun(V,pInitEos);
+    fixFlag = [0 0 0];
+    fixFlag(1) = 1;
+    opt = [];
+    [pfit pfitcov] = fitColdCompressData(pInitEos,fixFlag,...
+        priorEos,priorcovEos,coldEosFun,P,V,PerrTot,opt);
+    relErr = (pfit-pEos)./pEos;
+
+    verifyTrue(testCase,all(abs(relErr)<TOL));
+end
 function testFitColdCompressData_credRegion(testCase)
 
     rndSeed = 42;
@@ -130,6 +153,76 @@ function testFitHotCompressData_zeroMeasErr(testCase)
 
     pInitEos = pEos + [10 -15 -.5 0 -.2 .3 0];
     fixFlag = zeros(size(priorEos));
+    fixFlag(4)   = 1;
+    fixFlag(end) = 1;
+    %priorcovEos(end,end) = 0;
+
+    PerrTot = 1e-6*ones(size(V));
+    P = Pmod;
+
+    %PInit = coldEosFun(V,pInitEos);
+    opt = [];
+    opt.NfitIter = 1;
+    [pfit pfitcov] = fitHotCompressData(pInitEos,fixFlag,T0,...
+        NpCold,priorEos,priorcovEos,coldEosFun,hotEosFun,hotExtraInputs,...
+        addedThermPressFun,P,V,T,PerrTot,opt);
+    relErr = (pfit-pEos)./pEos;
+
+    verifyTrue(testCase,all(abs(relErr)<TOL));
+end
+function testFitHotCompressData_fixSubset(testCase)
+    TOL = 1e-3;
+
+    T0 = 300;
+    V0 = 162.373;
+    K0 = 258.4;
+    KP0= 4.10;
+
+    Natom = 4*5;
+    Tdeb0 = 940;
+    gam0  = 1.55;
+    q = 1.1;
+
+    pColdEos = [V0 K0 KP0];
+    pHotEos  = [Tdeb0 gam0 q 1.0];
+
+    VCold = V0*linspace(.7,1,9)';
+    TCold = 300*ones(size(VCold));
+    THot = [...
+        [1000:1500:5500]'; ...
+        [1000:1500:5500]'; ...
+        ];
+    VHot  = [...
+        VCold(1)*ones(4,1); ...
+        VCold(9)*ones(4,1); ...
+        ];
+    V = [VCold;VHot];
+    T = [TCold;THot];
+
+
+    coldEosFun = @VinetEos;
+    debyeDerivsFun = @debyePowerLaw;
+    hotExtraInputs = {Natom, debyeDerivsFun};
+    hotEosFun  = @(V,T,V0,T0,pHotEos,hotExtraInputs)...
+        (MieGrunDebyeHotEos(V,T,V0,T0,pHotEos,hotExtraInputs{:}));
+
+    addedThermPressFun = [];
+    [Pmod,KTmod,Cvmod,gammod] = calcPressThermAddEos(V(:),T(:),T0,pColdEos,pHotEos,...
+        coldEosFun,hotEosFun,hotExtraInputs,addedThermPressFun);
+
+    %scatter(Pmod,V,50,T,'o')
+
+    pEos = [pColdEos pHotEos];
+    NpCold = length(pColdEos);
+
+    priorEos = pEos;
+    priorcovEos = diag(Inf*ones(size(pEos)));
+
+    %pInitEos = pEos + [0 -15 -.5 0 -.2 .3 0];
+    pInitEos = pEos + [0  0 0 0 -.2 .3 0];
+    fixFlag = zeros(size(priorEos));
+    fixFlag(1)   = 1;
+    fixFlag(1:3)   = 1;
     fixFlag(4)   = 1;
     fixFlag(end) = 1;
     %priorcovEos(end,end) = 0;

@@ -24,11 +24,14 @@ function [pfit pfitcov nLogPFun] = fitHotCompressData(pinitEos,fixFlag,...
         PerrTot = PerrTot*ones(size(V));
     end
 
-    fixFlagColdOnly = fixFlag;
-    fixFlagColdOnly(NpCold+1:end) = 1;
-    [pinitCold,priorCold,priorcovCold] = ...
-        getFreeParams(pinitEos,priorEos,priorcovEos,fixFlagColdOnly);
-    fixFlagCold = fixFlagColdOnly(1:NpCold);
+    %fixFlagColdOnly = fixFlag;
+    %fixFlagColdOnly(NpCold+1:end) = 1;
+    %[pinitCold,priorCold,priorcovCold] = ...
+    %    getFreeParams(pinitEos,priorEos,priorcovEos,fixFlagColdOnly);
+    pinitCold = pinitEos(1:NpCold);
+    priorCold = priorEos(1:NpCold);
+    priorcovCold = priorcovEos(1:NpCold,1:NpCold);
+    fixFlagCold = fixFlag(1:NpCold);
 
 
     % Fit Cold subset of data
@@ -36,8 +39,10 @@ function [pfit pfitcov nLogPFun] = fitHotCompressData(pinitEos,fixFlag,...
         priorCold,priorcovCold,coldEosFun,P(indT0),V(indT0),PerrTot(indT0),opt);
 
     %update prior with cold fit
-    [pfit] = getAllParams(pfitCold,pinitEos,fixFlagColdOnly);
-    [pfitcov] = updateFreeCov(pfitcovCold,priorcovEos,fixFlagColdOnly);
+    fixHotEosFlag = zeros(size(fixFlag));
+    fixHotEosFlag(NpCold+1:end) = 1;
+    [pfit] = getAllParams(pfitCold,pinitEos,fixHotEosFlag);
+    [pfitcov] = updateFreeCov(pfitcovCold,priorcovEos,fixHotEosFlag);
 
     totPressFun = @(V,T,pEos)(calcPressThermAddEos(V,T,T0,...
         pEos(1:NpCold),pEos(NpCold+1:end),coldEosFun,hotEosFun,hotExtraInputs,...

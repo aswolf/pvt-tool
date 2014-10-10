@@ -1,4 +1,4 @@
-function pvt = initPvtData(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,Terr)
+function pvt = initPvtData(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,TErr)
 
     if(nargin==0)
         pvt = struct(...
@@ -6,14 +6,18 @@ function pvt = initPvtData(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,Terr
         'hotCompressTyp',@hotCompressTyp,...
         'thermExpTyp',@thermExpTyp);
 
-        return pvt;
+        return;
     end
-    Ndat = checkInput(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,Terr);
+    checkInput(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,TErr);
+    Ndat = length(VSamp);
 
-    [measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,Terr] = ...
-        cleanInput(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,Terr);
+    [measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,TErr] = ...
+        cleanInput(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,TErr);
 
-
+    % Temporarily set initErrMod locally
+    uniqMeasGrp = unique(measGrpID);
+    NmeasGrp = length(uniqMeasGrp);
+    initErrModPvt = @()(zeros(NmeasGrp,3));
     % Initialize error model for PVT data using external method in fitLib
     initCalibState = initErrModPvt();
 
@@ -50,7 +54,7 @@ function measTyp = detectMeasTyp(P,T)
     P0 = 0;
 
     TOL_P = 1;
-    TOL_T = 10
+    TOL_T = 10;
 
     isColdCompress = (abs(T-T0) < TOL_T);
     isThermExp     = (abs(P-P0) < TOL_P & ~isColdCompress);
@@ -58,15 +62,15 @@ function measTyp = detectMeasTyp(P,T)
     measTyp = ones(length(P),1);
 
     % cold compression data is in group 1
-    measTyp(isColdCompress) = pvt.coldCompressTyp;
+    measTyp(isColdCompress) = pvt.coldCompressTyp();
     % thermal expansion data is in group 2
-    measTyp(isThermExp) = pvt.thermExpTyp;
+    measTyp(isThermExp) = pvt.thermExpTyp();
     % General high P-T data is in group 3
-    measTyp(~isColdCompress & ~isThermExp) = pvt.hotCompressTyp;
+    measTyp(~isColdCompress & ~isThermExp) = pvt.hotCompressTyp();
 end
 
-function [measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,Terr] = ...
-        cleanInput(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,Terr)
+function [measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,TErr] = ...
+        cleanInput(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,TErr)
 
     Ndat = length(VSamp);
 
@@ -78,7 +82,7 @@ function [measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,Terr] = ...
     VSamp    = VSamp(:);
     VSampErr = VSampErr(:);
     T        = T(:);
-    Terr     = Terr(:);
+    TErr     = TErr(:);
 
     makeFullArr = @(arr)(arr*ones(Ndat,1));
 
@@ -92,7 +96,7 @@ function [measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,Terr] = ...
     if(length(T)==1)           T           = makeFullArr(T); end
     if(length(TErr)==1)        TErr        = makeFullArr(TErr); end
 end
-function checkInput(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,Terr)
+function checkInput(measGrpID,P,PErr,VMark,VMarkErr,VSamp,VSampErr,T,TErr)
     assert(~isempty(VSamp),'VSamp cannot be empty.');
     Ndat = length(VSamp);
 

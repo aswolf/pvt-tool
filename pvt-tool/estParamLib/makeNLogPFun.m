@@ -6,7 +6,8 @@ function nLogPFun = makeNLogPFun(wtResidFun,prior,priorcov,opt)
 
     % Filter out unconstrained variables from prior weighting
     %  - unconstrained variables shown by infinite variance
-    infVar = isinf(diag(priorcov));
+    %  - NaN values mark fixed params post fitting, so ignore these too
+    infVar = isinf(diag(priorcov)) | isnan(diag(priorcov));
     priorcovSub = priorcov(~infVar,~infVar);
     priorHessSub = inv(priorcovSub);
     priorSub = prior(~infVar);
