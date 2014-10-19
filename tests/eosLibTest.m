@@ -364,11 +364,8 @@ function testCalcThermExpTrend(testCase)
         Tmin,Tmax,Nstep,T0,pColdEos,pHotEos,...
         coldEosFun,hotEosFun,hotExtraInputs,elecThermPressFun);
 
-    pLvl = diff(normcdf([0 1]));
-    [trend,trendBnds] = getCredIntervalTrend(pEos,pcovEos,...
-        trendFun,Ndraw,pLvl);
     % Assert that they are of order 1e-5
-    verifyTrue(testCase,abs(log10(1e5*thermExpTrend) - 0.5) < 0.5);
+    verifyTrue(testCase,all(abs(log10(1e5*thermExpTrend) - 0.5) < 0.5));
 end
 
 
