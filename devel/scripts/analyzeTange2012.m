@@ -32,9 +32,9 @@ T_T12         = datreadT12.data(:,T_colT12);
 TErr_T12      = datreadT12.data(:,TErr_colT12);
 TErr_T12(measGrpID_T12==1 & abs(T_T12/T0-1) > 3e-2) = 1;
 
-pvPvtT12 = initPvtData(measGrpID_T12,P_T12,PErr_T12,VMark_T12,VMarkErr_T12,VSamp_T12,VSampErr_T12,T_T12,Terr_T12);
-scatter(pvPvtT12.P,pvPvtT12.VSamp,50,pvPvtT12.T,'o')
-pvPvtT12.PErr
+pvPVT_T12 = initPVTData(measGrpID_T12,P_T12,PErr_T12,VMark_T12,VMarkErr_T12,VSamp_T12,VSampErr_T12,T_T12,Terr_T12);
+scatter(pvPVT_T12.P,pvPVT_T12.VSamp,50,pvPVT_T12.T,'o')
+pvPVT_T12.PErr
 
 
 

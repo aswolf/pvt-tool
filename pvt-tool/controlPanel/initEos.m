@@ -17,7 +17,7 @@ function eos = initEos(T0,pColdEos,pHotEos,fullEosModTyp,coldEosTyp,hotEosTyp)
 
 
     % Initialize error model for PVT data using external method in fitLib
-    initCalibState = initErrModPvt();
+    initCalibState = initErrModPVT();
 
     % If not defined by user, all data put into 1 meas grp
     if(isempty(measGrpID))
@@ -44,7 +44,7 @@ function eos = initEos(T0,pColdEos,pHotEos,fullEosModTyp,coldEosTyp,hotEosTyp)
         'thermExpTyp'    ,@thermExpTyp);
 end
 function measTyp = detectMeasTyp(P,T)
-    pvt = initPvtData();
+    pvt = initPVTData();
     %    (1) cold compression data
     %    (2) ambient press therm exp data
     %    (3) general high P-T data
