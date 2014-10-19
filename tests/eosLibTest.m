@@ -332,7 +332,44 @@ end
 %%%%%%%%%%%%%%%%%%%%%
 %  Test calc thermExpTrend
 %%%%%%%%%%%%%%%%%%%%%
+function testCalcThermExpTrend(testCase)
+    % Test with Tange 2012 dataset
+    T0 = 300;
+    V0 = 162.373;
+    K0 = 258.4;
+    KP0= 4.10;
 
+    Natom = 4*5;
+    Tdeb0 = 940;
+    gam0  = 1.55;
+    q = 1.1;
+
+    pColdEos = [V0 K0 KP0];
+    pHotEos  = [Tdeb0 gam0 q 1.0];
+    
+    coldEosFun = @VinetEos;
+    debyeDerivsFun = @debyePowerLaw;
+    hotExtraInputs = {Natom, debyeDerivsFun};
+    hotEosFun  = @(V,T,V0,T0,pHotEos,hotExtraInputs)...
+        (MieGrunDebyeHotEos(V,T,V0,T0,pHotEos,hotExtraInputs{:}));
+
+    elecThermPressFun = [];
+
+    Ptarget = 0;
+    Tmin = T0;
+    Tmax = 2000;
+    Nstep = 30;
+
+    [thermExpTrend,VTrend,TTrend] = calcThermExpTrend(Ptarget,...
+        Tmin,Tmax,Nstep,T0,pColdEos,pHotEos,...
+        coldEosFun,hotEosFun,hotExtraInputs,elecThermPressFun);
+
+    pLvl = diff(normcdf([0 1]));
+    [trend,trendBnds] = getCredIntervalTrend(pEos,pcovEos,...
+        trendFun,Ndraw,pLvl);
+    % Assert that they are of order 1e-5
+    verifyTrue(testCase,abs(log10(1e5*thermExpTrend) - 0.5) < 0.5);
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%
