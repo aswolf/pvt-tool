@@ -118,7 +118,7 @@ function testFitParams_corr(testCase)
     [pfit] = fitParams(pinit,nLogPFun,opt);
     verifyTrue(testCase,all(abs(pfit-[0 0]) < TOL));
 end
-function testFitParams_corrNd(testCase)
+function testFitParams_corrNd_NOT(testCase)
     verifyTrue(testCase,false);
     % creating a random valid covariance matrix (positive semi definite)
     % is actually non trivial!
@@ -191,11 +191,11 @@ function testEstParamCov_corr2d(testCase)
     dpfitcov = pfitcov - pcov;
     verifyTrue(testCase,all(abs(dpfitcov(:)) < TOL));
 end
-function testEstParamCov_corrNd(testCase)
+function testEstParamCov_corrNd_NOT(testCase)
     verifyTrue(testCase,false);
 end
 
-function testFitFreeParamsWithPrior(testCase)
+function testFitFreeParamsWithPrior_NOT(testCase)
     verifyTrue(testCase,false);
 end
 function testMkNLogPFun_optDefaults(testCase)
@@ -207,11 +207,11 @@ function testMkNLogPFun_optDefaults(testCase)
     otherFields = setdiff(optNameList,optInList);
     verifyTrue(testCase,isempty(otherFields));
 end
-function testMkNLogPFun_dist(testCase)
+function testMkNLogPFun_dist_NOT(testCase)
     % Test that distribution of costfunction values matches a chi sqr distbn
     verifyTrue(testCase,false);
 end
-function testMkNLogPFun_distRobust(testCase)
+function testMkNLogPFun_distRobust_NOT(testCase)
     % Test that distribution of costfunction values matches a multivariate
     % students t cdf
     verifyTrue(testCase,false);
@@ -278,4 +278,97 @@ function testCorrToCov_InfElemWithCorr(testCase)
     pcov = corrToCov(perr0,pcorr0);
 
     verifyTrue(testCase, all(pcov(:)==pcov0(:)));
+end
+function testFitErrModResid_1dPoly(testCase)
+    seed=42;
+    rng(seed)
+
+    % Test errMod for polynomial
+    pmod = [0.2 1.5 0];
+    dpmod = polyder(pmod);
+
+    xmod = linspace(-3,3,30)';
+    ymod = polyval(pmod,xmod);
+
+    xerr = 0.2*randn(size(xmod));
+    xobs = xmod + xerr;
+
+    %plot(xmod,ymod,'ro',xobs,ymod,'kx')
+    yresid = ymod - polyval(pmod,xobs);
+    dydxobs = polyval(dpmod,xobs);
+
+    measGrpID = ones(size(yresid));
+
+    pinitErrMod = [0];
+    priorErrMod = [0];
+    priorcovErrMod = [.3^2];
+    opt = [];
+
+    [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
+        priorErrMod,priorcovErrMod,yresid,dydxobs,xerr,measGrpID,opt);
+
+    [pfitcovErrMod] = estParamCov(nLogPFun,pfitErrMod,[],opt);
+
+    assert(abs(pfitErrMod)<.05, 'pfitErrMod should be small');
+    assert(abs(pfitErrMod/sqrt(pfitcovErrMod))<1, ...
+        'pfitErrMod should be less than the error');
+end
+
+function testFitErrModResid_2dPoly(testCase)
+    seed=2*42;
+    rng(seed);
+
+    % Test errMod for polynomial
+    %             1      2     3   4   5   6
+    %           x1^2    x2^2 x1*x2 x1  x2  1
+    pmod     = [0.2     -.2    0  -1.5 1.5 0];
+    %dydx1 = 0*x1^2 + 0*x2^2 + 0*x1*x2 + 2*pmod(1)*x1 + x2*pmod(3) + pmod(4)
+    %dydx2 = 0*x1^2 + 0*x2^2 + 0*x1*x2 + x1*pmod(3)   + 2*pmod(2)*x2 +  pmod(5)
+    dpmoddx1 = [0 0 0 2*pmod(1)   pmod(3) pmod(4)];
+    dpmoddx2 = [0 0 0   pmod(3) 2*pmod(2) pmod(5)];
+    
+    x1vec = linspace(-3  ,3  ,10);
+    x2vec = linspace(-2.5,3.5,10);
+    [x1M,x2M] = ndgrid(x1vec,x2vec);
+    x12 = [x1M(:) x2M(:)];
+
+    x1errMag = 0.3;
+    x2errMag = 0.1;
+
+    xerrMag = ones(size(x12,1),1)*[x1errMag x2errMag];
+    xerr = xerrMag.*randn(size(xerrMag));
+
+    xobs = x12 + xerr;
+
+    designM = [x12(:,1).^2 x12(:,2).^2 x12(:,1).*x12(:,2) ...
+        x12(:,1) x12(:,2) ones(size(x12,1),1)];
+
+    designObsM = [xobs(:,1).^2 xobs(:,2).^2 xobs(:,1).*xobs(:,2) ...
+        xobs(:,1) xobs(:,2) ones(size(xobs,1),1)];
+
+    ymod    = designM*pmod';
+
+    yresid  = ymod-designObsM*pmod';
+    dydx1obs= designObsM*dpmoddx1';
+    dydx2obs= designObsM*dpmoddx2';
+    dydxobs = [dydx1obs(:) dydx2obs(:)];
+
+    yM = reshape(ymod,size(x1M));
+
+    measGrpID = ones(size(yresid));
+
+    pinitErrMod = [0 0];
+    priorErrMod = [0 0];
+    priorcovErrMod = diag([.3^2 .3.^2]);
+    opt = [];
+
+    [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
+        priorErrMod,priorcovErrMod,yresid,dydxobs,xerr,measGrpID,opt);
+
+    [pfitcovErrMod] = estParamCov(nLogPFun,pfitErrMod,[],opt);
+    pfiterrErrMod = sqrt(diag(pfitcovErrMod))';
+    pfitcorrErrMod= pfitcovErrMod./(pfiterrErrMod(:)*pfiterrErrMod(:)');
+
+    assert(all(abs(pfitErrMod)./pfiterrErrMod<1), ...
+        'pfitErrMod should be less than the error');
 end
