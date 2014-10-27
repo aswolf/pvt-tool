@@ -1,4 +1,4 @@
-function eos = initEos(T0,pColdEos,pHotEos,fullEosModTyp,coldEosTyp,hotEosTyp)
+function eos = initEosMod(T0,pColdEos,pHotEos,fullEosModTyp,coldEosTyp,hotEosTyp)
 
     if(nargin==0)
         eos = struct(...

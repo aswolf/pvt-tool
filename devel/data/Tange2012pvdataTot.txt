@@ -1,3 +1,4 @@
+% NOTE: These data are WRONG, used incorrect pscale!!!
 %Tange(2012)
 %measGrp P, err      V, err      T, err  PerrTot
 1   30.255 0.040  150.26 0.110  1300  1   0.306
