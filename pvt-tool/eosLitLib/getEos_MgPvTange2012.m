@@ -1,7 +1,9 @@
-function eosMod = getEos_MgPvTange2009()
+function eosMod = getEos_MgPvTange2012()
     eosMod = getBestModel();
 end
 function eosMod = getBestModel()
+    material = 'MgPv';
+    name = 'MgPv-Tange2012';
     T0 = 300;
 
     V0 = 162.373;
@@ -31,5 +33,5 @@ function eosMod = getBestModel()
     hotExtraInputs = {Natom, debyeDerivsFun};
     addedThermPressFun = [];
 
-    eosMod = initEos(pEos,pEosCov,T0,NpCold,coldEosFun,hotEosFun,hotExtraInputs,addedThermPressFun);
+    eosMod = initEos(name,material,pEos,pEosCov,T0,NpCold,coldEosFun,hotEosFun,hotExtraInputs,addedThermPressFun);
 end

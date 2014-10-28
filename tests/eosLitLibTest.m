@@ -79,7 +79,8 @@ function testGetEos_MgOTange2009(testCase)
     calcErr = PmodTbl-PTbl;
     realInd = find(~isnan(calcErr));
 
-    verifyTrue(testCase,all(reshape(abs(calcErr(realInd)),[],1) < TOL));
+    verifyTrue(testCase,all(reshape(abs(calcErr(realInd)),[],1) < TOL),...
+        'Calculated Pressures must agree with Table vals within TOL');
 end
 function testGetEos_MgPvTange2012(testCase)
     eosMgPvMod = getEos_MgPvTange2012();
@@ -114,5 +115,10 @@ function testGetEos_MgPvTange2012(testCase)
     calcErr = PmodTbl-PTbl;
 
     realInd = find(~isnan(calcErr));
-    verifyTrue(testCase,all(reshape(abs(calcErr(realInd)),[],1) < TOL));
+    verifyTrue(testCase,all(reshape(abs(calcErr(realInd)),[],1) < TOL),...
+        'Calculated Pressures must agree with Table vals within TOL');
+end
+function testGetPVTdata_MgPvTange2012(testCase)
+    PVTdata = getPVTdata_MgPvTange2012();
+    verifyTrue(testCase,true,'Must be able to initialize PVTdata without error');
 end

@@ -13,12 +13,11 @@ function [thermExpTrend,VTrend,TTrend] = calcThermExpTrend(Ptarget,...
         Tcurr = TTrend(i);
         Vcurr = Vnext;
         VTrend(i) = Vcurr;
-        [iP,iKT,iCv,igam] = calcPressThermAddEos(Vcurr,Tcurr,T0,...
+        [iP,iKT,iCv,igam,ithmExp] = calcPressThermAddEos(Vcurr,Tcurr,T0,...
             pColdEos,pHotEos,coldEosFun,hotEosFun,hotExtraInputs,...
             elecThermPressFun);
         PTrend(i) = iP;
-        ithermExp = igam*iCv./(iKT.*Vcurr);
-        thermExpTrend(i) = ithermExp;
-        Vnext = Vcurr*(1+ithermExp*dT);
+        thermExpTrend(i) = ithmExp;
+        Vnext = Vcurr*(1+ithmExp*dT);
     end
 end

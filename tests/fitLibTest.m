@@ -136,8 +136,7 @@ function testFitHotCompressData_zeroMeasErr(testCase)
     coldEosFun = @VinetEos;
     debyeDerivsFun = @debyePowerLaw;
     hotExtraInputs = {Natom, debyeDerivsFun};
-    hotEosFun  = @(V,T,V0,T0,pHotEos,hotExtraInputs)...
-        (MieGrunDebyeHotEos(V,T,V0,T0,pHotEos,hotExtraInputs{:}));
+    hotEosFun = @MieGrunDebyeHotEos;
 
     addedThermPressFun = [];
     [Pmod,KTmod,Cvmod,gammod] = calcPressThermAddEos(V(:),T(:),T0,pColdEos,pHotEos,...
@@ -203,8 +202,7 @@ function testFitHotCompressData_fixSubset(testCase)
     coldEosFun = @VinetEos;
     debyeDerivsFun = @debyePowerLaw;
     hotExtraInputs = {Natom, debyeDerivsFun};
-    hotEosFun  = @(V,T,V0,T0,pHotEos,hotExtraInputs)...
-        (MieGrunDebyeHotEos(V,T,V0,T0,pHotEos,hotExtraInputs{:}));
+    hotEosFun = @MieGrunDebyeHotEos;
 
     addedThermPressFun = [];
     [Pmod,KTmod,Cvmod,gammod] = calcPressThermAddEos(V(:),T(:),T0,pColdEos,pHotEos,...
@@ -241,6 +239,8 @@ function testFitHotCompressData_fixSubset(testCase)
     verifyTrue(testCase,all(abs(relErr)<TOL));
 end
 
+
+
 %function testFitHotCompressData_credRegion(testCase)
 %    TOL = 1e-3;
 %
@@ -274,8 +274,7 @@ end
 %    coldEosFun = @VinetEos;
 %    debyeDerivsFun = @debyePowerLaw;
 %    hotExtraInputs = {Natom, debyeDerivsFun};
-%    hotEosFun  = @(V,T,V0,T0,pHotEos,hotExtraInputs)...
-%        (MieGrunDebyeHotEos(V,T,V0,T0,pHotEos,hotExtraInputs{:}));
+%    hotEosFun  = @MieGrunDebyeHotEos;
 %
 %    addedThermPressFun = [];
 %    [Pmod,KTmod,Cvmod,gammod] = calcPressThermAddEos(V(:),T(:),T0,pColdEos,pHotEos,...

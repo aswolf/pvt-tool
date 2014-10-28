@@ -2,6 +2,8 @@ function eosMod = getEos_MgOTange2009()
     eosMod = getBestModel();
 end
 function eosMod = getBestModel()
+    material = 'MgO';
+    name = 'MgO-Tange2009';
     T0 = 300;
     V0 = 74.698;
     K0 = 160.63;
@@ -29,5 +31,5 @@ function eosMod = getBestModel()
     hotExtraInputs = {Natom, debyeDerivsFun};
     addedThermPressFun = [];
 
-    eosMod = initEos(pEos,pEosCov,T0,NpCold,coldEosFun,hotEosFun,hotExtraInputs,addedThermPressFun);
+    eosMod = initEos(name,material,pEos,pEosCov,T0,NpCold,coldEosFun,hotEosFun,hotExtraInputs,addedThermPressFun);
 end

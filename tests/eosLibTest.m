@@ -312,7 +312,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%
 %  Test MieGrunEinstein Hot Eos fun
 %%%%%%%%%%%%%%%%%%%%%%
-function testMieGrunEinsteinHotEos_PHot0(testCase)
+function testMieGrunEinsteinHotEos_PHot0_NOT(testCase)
     TOL = 1e-5;
     V0 = 10;
     T0 = 300;
@@ -348,10 +348,9 @@ function testCalcThermExpTrend(testCase)
     pHotEos  = [Tdeb0 gam0 q 1.0];
     
     coldEosFun = @VinetEos;
+    hotEosFun  = @MieGrunDebyeHotEos;
     debyeDerivsFun = @debyePowerLaw;
     hotExtraInputs = {Natom, debyeDerivsFun};
-    hotEosFun  = @(V,T,V0,T0,pHotEos,hotExtraInputs)...
-        (MieGrunDebyeHotEos(V,T,V0,T0,pHotEos,hotExtraInputs{:}));
 
     elecThermPressFun = [];
 
@@ -411,8 +410,7 @@ function testCalcPressThermAddEos_Tange2012(testCase)
     coldEosFun = @VinetEos;
     debyeDerivsFun = @debyePowerLaw;
     hotExtraInputs = {Natom, debyeDerivsFun};
-    hotEosFun  = @(V,T,V0,T0,pHotEos,hotExtraInputs)...
-        (MieGrunDebyeHotEos(V,T,V0,T0,pHotEos,hotExtraInputs{:}));
+    hotEosFun  = @MieGrunDebyeHotEos;
 
     %hotEosFun(V(:),T(:),V0,T0,pHotEos,hotExtraInputs)
 
@@ -511,10 +509,7 @@ function testCalcPressThermAddEos_Tange2009(testCase)
     coldEosFun = @VinetEos;
     debyeDerivsFun = @debyeTange;
     hotExtraInputs = {Natom, debyeDerivsFun};
-    hotEosFun  = @(V,T,V0,T0,pHotEos,hotExtraInputs)...
-        (MieGrunDebyeHotEos(V,T,V0,T0,pHotEos,hotExtraInputs{:}));
-    %hotEosFun  = @(V,T,V0,T0,pHotEos)...
-    %    (MieGrunDebyeHotEos(V,T,V0,T0,pHotEos,Natom,debyeDerivsFun));
+    hotEosFun  = @MieGrunDebyeHotEos;
 
     addedThermPressFun = [];
     [P,KT,Cv,gam] = calcPressThermAddEos(V(:),T(:),T0,pColdEos,pHotEos,...
