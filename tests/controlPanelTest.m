@@ -1,4 +1,4 @@
-function tests = eosLitLibTest
+function tests = controlPanelTest
     tests = functiontests(localfunctions);
 end
 function testGetEos_MgOTange2009(testCase)
