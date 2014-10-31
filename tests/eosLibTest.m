@@ -522,3 +522,56 @@ function testCalcPressThermAddEos_Tange2009(testCase)
     verifyTrue(testCase,all(reshape(abs(calcErr(realInd)),[],1) < TOL));
 end
 
+function testInvertPressEos(testCase)
+    TOL = 1e-8;
+
+    T0 = 300;
+    V0 = 74.698;
+    K0 = 160.63;
+    KP0= 4.367;
+
+    Natom = 4*2;
+    Tdeb0 = 761;
+    gam0  = 1.442;
+    a = 0.138;
+    b = 5.4;
+
+    pColdEos = [V0 K0 KP0];
+    pHotEos  = [Tdeb0 gam0 a b 1.0];
+
+    pEos = [pColdEos pHotEos];
+    NpCold = length(pColdEos);
+
+    coldEosFun = @VinetEos;
+    hotEosFun = @MieGrunDebyeHotEos;
+    debyeDerivsFun = @debyeTange;
+    
+    hotExtraInputs = {Natom, debyeDerivsFun};
+    addedThermPressFun = [];
+
+    Ncold = 8;
+    NhotCyc = 3;
+    NstepPerCyc = 4;
+
+    ThotBnd = [1000,5000];
+    VCold = V0*linspace(.7,1,Ncold)';
+    TCold = 300*ones(Ncold,1);
+    THotCycle = linspace(ThotBnd(1),ThotBnd(2),NstepPerCyc)';
+    THot = repmat(THotCycle(:),NhotCyc,1);
+
+    indHotAnchor = round(linspace(1,Ncold,NhotCyc)');
+
+    VHot = reshape(repmat(VCold(indHotAnchor),1,NstepPerCyc),[],1);
+
+    V = [VCold;VHot];
+    T = [TCold;THot];
+
+    [P,KT,Cv,gam] = calcPressThermAddEos(V(:),T(:),T0,pColdEos,pHotEos,...
+        coldEosFun,hotEosFun,hotExtraInputs,addedThermPressFun);
+
+    Vinv = invertPressEos(P,T,pColdEos,pHotEos,T0,coldEosFun,hotEosFun,...
+        hotExtraInputs,addedThermPressFun);
+
+    assert(all(abs(Vinv-V)<TOL), ...
+        'Inverted vol must match true vol to within TOL');
+end

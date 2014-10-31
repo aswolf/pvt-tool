@@ -8,7 +8,6 @@ function [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
 
     pinitErrMod = pinitErrMod(:)';
     Ndat = length(yresid);
-
     
     sqrErrMod = @(perrmod)(sum((dydxmod.*xerr.*(ones(Ndat,1)*exp(perrmod))).^2,2));
 
