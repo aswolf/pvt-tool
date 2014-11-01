@@ -523,7 +523,7 @@ function testCalcPressThermAddEos_Tange2009(testCase)
 end
 
 function testInvertPressEos(testCase)
-    TOL = 1e-8;
+    TOL = 1e-5;
 
     T0 = 300;
     V0 = 74.698;
@@ -571,7 +571,6 @@ function testInvertPressEos(testCase)
 
     Vinv = invertPressEos(P,T,pColdEos,pHotEos,T0,coldEosFun,hotEosFun,...
         hotExtraInputs,addedThermPressFun);
-
-    assert(all(abs(Vinv-V)<TOL), ...
+    verifyTrue(testCase,all(abs(Vinv./V-1)<TOL), ...
         'Inverted vol must match true vol to within TOL');
 end

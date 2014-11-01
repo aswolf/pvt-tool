@@ -207,9 +207,9 @@ function testFitErrModPVT_synth(testCase)
     NhotCyc = 3;
     NstepPerCyc = 4;
 
-    Ncold = 20;
-    NhotCyc = 4;
-    NstepPerCyc = 10;
+    Ncold = 60;
+    NhotCyc = 8;
+    NstepPerCyc = 20;
     V0MgPv = pColdEosMgPv(1);
 
     [Vsamp,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0MgPv);
@@ -228,14 +228,19 @@ function testFitErrModPVT_synth(testCase)
 
     indCold300 = find(T==300);
     % Add errors to V and T
-    VsampErr = 0.01*Vsamp;
-    VmarkErr = 0.01*Vmark;
+    VsampErr = 0.005*Vsamp;
+    VmarkErr = 0.005*Vmark;
     TErr     = 150*ones(size(T));
     TErr(indCold300) = 0;
 
-    VmarkObs = Vmark + VmarkErr.*randn(size(VmarkErr));
-    VsampObs = Vsamp + VsampErr.*randn(size(VsampErr));
-    TObs     = T     + TErr.*randn(size(TErr));
+    ptrueErrMod = [.2 -.2 .0];
+
+    %VmarkObs = Vmark + VmarkErr.*randn(size(VmarkErr));
+    %VsampObs = Vsamp + VsampErr.*randn(size(VsampErr));
+    %TObs     = T     + TErr.*randn(size(TErr));
+    VmarkObs = Vmark + exp(ptrueErrMod(1))*VmarkErr.*randn(size(VmarkErr));
+    VsampObs = Vsamp + exp(ptrueErrMod(2))*VsampErr.*randn(size(VsampErr));
+    TObs     = T     + exp(ptrueErrMod(3))*TErr.*randn(size(TErr));
 
     [PmarkObs,KTmarkObs,CvmarkObs,gammarkObs,thmExpmarkObs] = ...
         calcPressThermAddEos(VmarkObs,TObs,T0MgO,pColdEosMgO,pHotEosMgO,...
