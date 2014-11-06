@@ -1,15 +1,21 @@
+% fitErrModResid - fit error bar adjustment params given current model residuals
 function [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
-        priorErrMod,priorcovErrMod,yresid,dydxmod,xerr,measGrpID,opt)
+        priorErrMod,priorcovErrMod,linTransM, yresid,dydxmod,xerr,measGrpID,opt)
     % May need to add eos fitting specific options
     optDefault = getEstParamDefaultOpt();
     opt = setDefaultOpt(opt,optDefault);
 
-    checkInput(pinitErrMod,priorErrMod,priorcovErrMod,yresid,dydxmod,xerr,measGrpID);
+    % If unspecified, used identity transformation with zero offset
+    if(isempty(linTransM))
+        linTransM = [eye(numel(priorErrMod)) zeros(numel(priorErrMod),1)];
+    end
+
+    checkInput(pinitErrMod,priorErrMod,priorcovErrMod,linTransM,yresid,dydxmod,xerr,measGrpID);
 
     pinitErrMod = pinitErrMod(:)';
     Ndat = length(yresid);
     
-    sqrErrMod = @(perrmod)(sum((dydxmod.*xerr.*(ones(Ndat,1)*exp(perrmod))).^2,2));
+    sqrErrMod = @(perrmod)(sum((dydxmod.*xerr.*(ones(Ndat,1)*exp((linTransM*[perrmod 1]')'))).^2,2));
 
     priorHess = inv(priorcovErrMod);
     % If robust, implement as Student's T distribution
@@ -28,22 +34,33 @@ function [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
     [pfitErrMod] = fitParams(pinitErrMod,nLogPFun,opt);
 end
 
-function checkInput(pinitErrMod,priorErrMod,priorcovErrMod,...
+function checkInput(pinitErrMod,priorErrMod,priorcovErrMod,linTransM,...
         yresid,dydxmod,xerr,measGrpID)
+    dimx = size(dydxmod,2);
+    NpErrMod = length(pinitErrMod);
+    Ndat = size(yresid,1);
     uniqID = unique(measGrpID);
+
+    assert(length(priorErrMod)==NpErrMod,...
+        'Number of error mod params must be equal in prior and init');
+    assert(all(NpErrMod*[1 1]==size(priorcovErrMod)),...
+        'priorcov matrix must be square with dimensions of param num');
+
     assert(size(yresid,2)==1,'yresid must be vertical array')
-    assert(size(dydxmod,1)==size(yresid,1),...
-        'dydxmod must have one row per datum.')
-    assert(size(xerr,1)==size(yresid,1),'xerr must have one row per datum.')
-    assert(size(measGrpID,1)==size(yresid,1),'measGrpID must have same len as yresid.')
-    assert(size(xerr,2)==size(dydxmod,2),...
-        'xerr and dydxmod must have one col per independent var.')
+
+    assert(size(dydxmod,1)==Ndat,'dydxmod must have one row per datum.')
+    assert(size(xerr,1)==Ndat,'xerr must have one row per datum.')
+    assert(size(measGrpID,1)==Ndat,'measGrpID must have one row per datum.')
+
+    assert(size(xerr,2)==dimx,'xerr must have one col per x dimension.')
+
+    assert(size(linTransM,1)==dimx,...
+        'linTransM must have one row per x dimension.');
+    assert(size(linTransM,2)==NpErrMod+1,['linTransM must have one col per '...
+        'errMod parameter plus one extra for offsets.']);
+
     assert(uniqID(1)==1,'measGrpID must start with 1.');
     assert(all(diff(uniqID)==1),'measGrpID must be an array of integers');
-    assert(size(dydxmod,2)*length(uniqID)==length(pinitErrMod),...
-        'Number of error mod params must be equal to the number of runs*3');
-    assert(length(priorErrMod)==length(pinitErrMod),...
-        'Number of error mod params must be equal in prior and init');
-    assert(all(length(priorErrMod)*[1 1]==size(priorcovErrMod)),...
-        'priorcov matrix must be square with dimensions of param num');
+    %assert(dimx*length(uniqID)==NpErrMod,...
+    %    'Number of error mod params must be equal to the num of measGrps*dimx');
 end

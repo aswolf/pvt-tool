@@ -279,44 +279,84 @@ function testCorrToCov_InfElemWithCorr(testCase)
 
     verifyTrue(testCase, all(pcov(:)==pcov0(:)));
 end
-function testFitErrModResid_1dPoly(testCase)
+function testFitErrModResid_1dPolyDist(testCase)
     seed=42;
     rng(seed)
 
-    % Test errMod for polynomial
-    pmod = [0.2 1.5 0];
-    dpmod = polyder(pmod);
+    TOLWID = 0.3;
+    Ndraw = 100;
 
-    xmod = linspace(-3,3,30)';
-    ymod = polyval(pmod,xmod);
+    %NOTE: errorbar MUST be small enough that linear approximation is
+    %reasonable
+    xerrMag = .05;
+    ptrueErrMod = [-0.4];
+    priorcovErrMod = [1^2];
 
-    xerr = 0.2*randn(size(xmod));
-    xobs = xmod + xerr;
+    relDev = zeros(Ndraw,1);
+    for(i=1:Ndraw)
+        % Test errMod for polynomial
+        pmod = [0.2 1.5 0];
+        dpmod = polyder(pmod);
 
-    %plot(xmod,ymod,'ro',xobs,ymod,'kx')
-    yresid = ymod - polyval(pmod,xobs);
-    dydxobs = polyval(dpmod,xobs);
+        xmod = linspace(-3,3,30)';
+        ymod = polyval(pmod,xmod);
 
-    measGrpID = ones(size(yresid));
+        xerr = xerrMag*ones(size(xmod));
+        xdev = exp(ptrueErrMod)*xerr.*randn(size(xerr));
+        xobs = xmod + xdev;
 
-    pinitErrMod = [0];
-    priorErrMod = [0];
-    priorcovErrMod = [.3^2];
-    opt = [];
+        %plot(xmod,ymod,'ro',xobs,ymod,'kx')
+        yresid = ymod - polyval(pmod,xobs);
+        dydxobs = polyval(dpmod,xobs);
 
-    [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
-        priorErrMod,priorcovErrMod,yresid,dydxobs,xerr,measGrpID,opt);
+        measGrpID = ones(size(yresid));
 
-    [pfitcovErrMod] = estParamCov(nLogPFun,pfitErrMod,[],opt);
+        pinitErrMod = [0];
+        priorErrMod = [0];
+        opt = [];
+        linTransM = [];
 
-    assert(abs(pfitErrMod)<.05, 'pfitErrMod should be small');
-    assert(abs(pfitErrMod/sqrt(pfitcovErrMod))<1, ...
-        'pfitErrMod should be less than the error');
+        [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
+            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,measGrpID,opt);
+
+        [pfitcovErrMod] = estParamCov(nLogPFun,pfitErrMod,[],opt);
+
+        irelDev = (ptrueErrMod-pfitErrMod)/sqrt(pfitcovErrMod);
+        relDev(i) = irelDev;
+    end
+
+    %hist(relDev,10)
+    %mean(relDev)
+    %std(relDev)
+
+    assert(abs(mean(relDev))/std(relDev) < 1 ,...
+        ['Distribution of normalized errMod params must have small systematic '...
+        'deviation from truth (ie. within 1 sigma of zero)']);
+    assert(abs(log(std(relDev))) < TOLWID ,...
+        ['Distribution of normalized errMod params must have width close to '...
+        'truth (ie. within TOLWID of 1)']);
+
 end
 
-function testFitErrModResid_2dPoly(testCase)
+function testFitErrModResid_2dPolyFunScl(testCase)
     seed=2*42;
     rng(seed);
+
+    TOLWID = 0.1;
+    Ndraw = 100;
+
+    x1errMag = 0.03;
+    x2errMag = 0.01;
+    ptrueErrModScl = -1;
+    ptrueErrMod = ptrueErrModScl*[1 1];
+    pinitErrMod = [0 0];
+    priorErrMod = [0 0];
+    priorcovErrMod = diag([3^2 3^2]);
+
+    opt = [];
+    linTransM = [];
+
+    relDev = zeros(Ndraw,1);
 
     % Test errMod for polynomial
     %             1      2     3   4   5   6
@@ -331,14 +371,90 @@ function testFitErrModResid_2dPoly(testCase)
     x2vec = linspace(-2.5,3.5,10);
     [x1M,x2M] = ndgrid(x1vec,x2vec);
     x12 = [x1M(:) x2M(:)];
+    Ndat = size(x12,1);
 
-    x1errMag = 0.3;
-    x2errMag = 0.1;
+    for(i=1:Ndraw)
+        xerr = ones(size(x12,1),1)*[x1errMag x2errMag];
+        xdev = repmat(exp(ptrueErrMod),Ndat,1).*xerr.*randn(size(xerr));
+        xobs = x12 + xdev;
 
-    xerrMag = ones(size(x12,1),1)*[x1errMag x2errMag];
-    xerr = xerrMag.*randn(size(xerrMag));
+        designM = [x12(:,1).^2 x12(:,2).^2 x12(:,1).*x12(:,2) ...
+            x12(:,1) x12(:,2) ones(size(x12,1),1)];
 
-    xobs = x12 + xerr;
+        designObsM = [xobs(:,1).^2 xobs(:,2).^2 xobs(:,1).*xobs(:,2) ...
+            xobs(:,1) xobs(:,2) ones(size(xobs,1),1)];
+
+        ymod    = designM*pmod';
+
+        yresid  = ymod-designObsM*pmod';
+        dydx1obs= designObsM*dpmoddx1';
+        dydx2obs= designObsM*dpmoddx2';
+        dydxobs = [dydx1obs(:) dydx2obs(:)];
+
+        yM = reshape(ymod,size(x1M));
+
+        measGrpID = ones(size(yresid));
+
+
+        [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
+            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,measGrpID,opt);
+
+        nLogPFunScl=@(scl)(nLogPFun(scl*[1 1]));
+        pfitErrModScl = fminunc(nLogPFunScl,0,optimset('Display','off','LargeScale','off'));
+        [pfitcovErrMod] = estParamCov(nLogPFunScl,pfitErrModScl,[],opt);
+
+        irelDev = (ptrueErrModScl-pfitErrModScl)/sqrt(pfitcovErrMod);
+        relDev(i) = irelDev;
+
+        %irelDev = (ptrueErrMod-pfitErrMod)./sqrt(diag(pfitcovErrMod)');
+        %relDev(i,:) = irelDev;
+    end
+    %keyboard;
+    %hist(relDev,10)
+    %mean(relDev)
+    %std(relDev)
+
+    assert(abs(mean(relDev))/std(relDev) < 1 ,...
+        ['Distribution of normalized errMod params must have small systematic '...
+        'deviation from truth (ie. within 1 sigma of zero)']);
+    assert(abs(log(std(relDev))) < TOLWID ,...
+        ['Distribution of normalized errMod params must have width close to '...
+        'truth (ie. within TOLWID of 1)']);
+
+end
+function testFitErrModResid_2dPolyLinTransEquiv(testCase)
+    TOL = 1e-4;
+    seed=2*42;
+    rng(seed);
+
+    x1errMag = 0.03;
+    x2errMag = 0.01;
+    ptrueErrModScl = -1;
+    ptrueErrMod = ptrueErrModScl*[1 1];
+    pinitErrMod = [0 0];
+    priorErrMod = [0 0];
+    priorcovErrMod = diag([1e3^2 1e3^2]);
+
+    opt = [];
+
+    % Test errMod for polynomial
+    %             1      2     3   4   5   6
+    %           x1^2    x2^2 x1*x2 x1  x2  1
+    pmod     = [0.2     -.2    0  -1.5 1.5 0];
+    %dydx1 = 0*x1^2 + 0*x2^2 + 0*x1*x2 + 2*pmod(1)*x1 + x2*pmod(3) + pmod(4)
+    %dydx2 = 0*x1^2 + 0*x2^2 + 0*x1*x2 + x1*pmod(3)   + 2*pmod(2)*x2 +  pmod(5)
+    dpmoddx1 = [0 0 0 2*pmod(1)   pmod(3) pmod(4)];
+    dpmoddx2 = [0 0 0   pmod(3) 2*pmod(2) pmod(5)];
+    
+    x1vec = linspace(-3  ,3  ,10);
+    x2vec = linspace(-2.5,3.5,10);
+    [x1M,x2M] = ndgrid(x1vec,x2vec);
+    x12 = [x1M(:) x2M(:)];
+    Ndat = size(x12,1);
+
+    xerr = ones(size(x12,1),1)*[x1errMag x2errMag];
+    xdev = repmat(exp(ptrueErrMod),Ndat,1).*xerr.*randn(size(xerr));
+    xobs = x12 + xdev;
 
     designM = [x12(:,1).^2 x12(:,2).^2 x12(:,1).*x12(:,2) ...
         x12(:,1) x12(:,2) ones(size(x12,1),1)];
@@ -357,18 +473,237 @@ function testFitErrModResid_2dPoly(testCase)
 
     measGrpID = ones(size(yresid));
 
+
+    [tr nLogPFun] = fitErrModResid(pinitErrMod,...
+        priorErrMod,priorcovErrMod,[],yresid,dydxobs,xerr,measGrpID,opt);
+
+    nLogPFunScl=@(scl)(nLogPFun(scl*[1 1]));
+
+    %compare with linTransM
+    linTransM = [1 0.5 0; 1 -0.5 0];
+    priorcovErrModT = diag([1e3^2 1e-3^2]);
+    [tr nLogPFunT] = fitErrModResid(pinitErrMod,...
+        priorErrMod,priorcovErrModT,linTransM,yresid,dydxobs,xerr,measGrpID,opt);
+
+    sclMag = linspace(-2,0,30);
+    nLogPScl  = zeros(size(sclMag));
+    nLogPTrans= zeros(size(sclMag));
+    for(i=1:length(sclMag))
+        nLogPScl(i) = nLogPFunScl(sclMag(i));
+        nLogPTrans(i) = nLogPFunT([sclMag(i)  0]);
+    end
+    %plot(sclMag,nLogPScl,'k-',sclMag,nLogPTrans,'ro')
+
+    verifyTrue(testCase,all(abs(nLogPScl-nLogPTrans)<TOL),...
+        'Linear transformation must produce correct result when x1=x2');
+
+end
+function testFitErrModResid_2dPolyLinTransFitScl(testCase)
+    seed=2*42;
+    rng(seed);
+
+
+    TOLWID = 0.3;
+    Ndraw = 30;
+
+    x1errMag = 0.003;
+    x2errMag = 0.001;
+
+    linTransM = [1 0.5 0; 1 -0.5 0];
+    ptrueErrMod = [+.2 +.04];
+    ptrueErrMod = [+.2 +0];
+
     pinitErrMod = [0 0];
     priorErrMod = [0 0];
-    priorcovErrMod = diag([.3^2 .3.^2]);
-    opt = [];
+    priorcovErrMod = diag([3^2 .001^2]);
+    %priorcovErrMod = diag([3^2 3^2]);
 
-    [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
-        priorErrMod,priorcovErrMod,yresid,dydxobs,xerr,measGrpID,opt);
 
-    [pfitcovErrMod] = estParamCov(nLogPFun,pfitErrMod,[],opt);
-    pfiterrErrMod = sqrt(diag(pfitcovErrMod))';
-    pfitcorrErrMod= pfitcovErrMod./(pfiterrErrMod(:)*pfiterrErrMod(:)');
+    relDev = zeros(Ndraw,2);
+    absDev = zeros(Ndraw,2);
+    fitList = zeros(Ndraw,2);
 
-    assert(all(abs(pfitErrMod)./pfiterrErrMod<1), ...
-        'pfitErrMod should be less than the error');
+    % Test errMod for polynomial
+    %             1      2     3   4   5   6
+    %           x1^2    x2^2 x1*x2 x1  x2  1
+    pmod     = [0.2     -.3    0  -1.5 -3 0];
+    %dydx1 = 0*x1^2 + 0*x2^2 + 0*x1*x2 + 2*pmod(1)*x1 + x2*pmod(3) + pmod(4)
+    %dydx2 = 0*x1^2 + 0*x2^2 + 0*x1*x2 + x1*pmod(3)   + 2*pmod(2)*x2 +  pmod(5)
+    dpmoddx1 = [0 0 0 2*pmod(1)   pmod(3) pmod(4)];
+    dpmoddx2 = [0 0 0   pmod(3) 2*pmod(2) pmod(5)];
+    
+    x1vec = linspace(-3  ,3  ,10);
+    x2vec = linspace(-2.5,3.5,10);
+    [x1M,x2M] = ndgrid(x1vec,x2vec);
+    x12 = [x1M(:) x2M(:)];
+    Ndat = size(x12,1);
+    xerrFac = exp(linTransM*[ptrueErrMod 1]')';
+
+    for(i=1:Ndraw)
+        xerr = ones(size(x12,1),1)*[x1errMag x2errMag];
+        xdev = repmat(xerrFac,Ndat,1).*xerr.*randn(size(xerr));
+        xobs = x12 + xdev;
+
+        designM = [x12(:,1).^2 x12(:,2).^2 x12(:,1).*x12(:,2) ...
+            x12(:,1) x12(:,2) ones(size(x12,1),1)];
+
+        designObsM = [xobs(:,1).^2 xobs(:,2).^2 xobs(:,1).*xobs(:,2) ...
+            xobs(:,1) xobs(:,2) ones(size(xobs,1),1)];
+
+        ymod    = designM*pmod';
+
+        yresid  = ymod-designObsM*pmod';
+        dydx1obs= designObsM*dpmoddx1';
+        dydx2obs= designObsM*dpmoddx2';
+        dydxobs = [dydx1obs(:) dydx2obs(:)];
+
+        yM = reshape(ymod,size(x1M));
+
+        measGrpID = ones(size(yresid));
+
+        opt = [];
+
+        [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
+            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,...
+            measGrpID,opt);
+
+        %sclMag = linspace(-.6,.6,30);
+        %nLogPScl  = zeros(size(sclMag));
+        %nLogPTrans= zeros(size(sclMag));
+        %for(i=1:length(sclMag))
+        %    nLogPTrans(i) = nLogPFun([sclMag(i)  0]);
+        %end
+        %plot(sclMag,nLogPTrans,'k-')
+
+        [pfitcovErrMod] = estParamCov(nLogPFun,pfitErrMod,[],opt);
+        iabsDev = (ptrueErrMod-pfitErrMod);
+        irelDev = (ptrueErrMod-pfitErrMod)./sqrt(diag(pfitcovErrMod))';
+
+        absDev(i,:) = iabsDev;
+        relDev(i,:) = irelDev;
+        fitList(i,:) = pfitErrMod;
+    end
+
+    verifyTrue(testCase,abs(mean(relDev(:,1)))/std(relDev(:,1)) < 1 ,...
+        ['Distribution of normalized errMod params must have small systematic '...
+        'deviation from truth (ie. within 1 sigma of zero)']);
+    verifyTrue(testCase,abs(log(std(relDev(:,1)))) < TOLWID ,...
+        ['Distribution of normalized errMod param for avg magnitude must '...
+        'have width close to truth (ie. within TOLWID of 1)']);
+end
+function testFitErrModResid_2dPolyLinTransFit_NOT(testCase)
+    seed=2*42;
+    rng(seed);
+
+    verifyTrue(testCase,false,['2dPolyLinTransFit not yet implemented.' ...
+        'Cant get diff parameter yet']);
+
+    TOLWID = 0.3;
+    Ndraw = 300;
+
+    x1errMag = 0.0003;
+    x2errMag = 0.0001;
+
+    linTransM = [1 0.5 0; 1 -0.5 0];
+    ptrueErrMod = [+.2 -.04];
+
+    pinitErrMod = [0 0];
+    pinitErrMod = ptrueErrMod;
+    priorErrMod = [0 0];
+    priorcovErrMod = diag([.3^2 .1^2]);
+    %priorcovErrMod = diag([3^2 3^2]);
+
+
+    relDev = zeros(Ndraw,2);
+    absDev = zeros(Ndraw,2);
+    fitList = zeros(Ndraw,2);
+
+    % Test errMod for polynomial
+    %             1      2     3   4   5   6
+    %           x1^2    x2^2 x1*x2 x1  x2  1
+    pmod     = [0.2     -.3    .1  -1.5 -3 0];
+    %dydx1 = 0*x1^2 + 0*x2^2 + 0*x1*x2 + 2*pmod(1)*x1 + x2*pmod(3) + pmod(4)
+    %dydx2 = 0*x1^2 + 0*x2^2 + 0*x1*x2 + x1*pmod(3)   + 2*pmod(2)*x2 +  pmod(5)
+    dpmoddx1 = [  0      0     0 2*pmod(1)   pmod(3) pmod(4)];
+    dpmoddx2 = [  0      0     0   pmod(3) 2*pmod(2) pmod(5)];
+    
+    x1vec = linspace(-3  ,3  ,10);
+    x2vec = linspace(-2.5,3.5,10);
+    [x1M,x2M] = ndgrid(x1vec,x2vec);
+    x12 = [x1M(:) x2M(:)];
+    Ndat = size(x12,1);
+    xerrFac = exp(linTransM*ptrueErrMod')';
+
+    for(i=1:Ndraw)
+        xerr = ones(size(x12,1),1)*[x1errMag x2errMag];
+        xdev = repmat(xerrFac,Ndat,1).*xerr.*randn(size(xerr));
+        xobs = x12 + xdev;
+
+        designM = [x12(:,1).^2 x12(:,2).^2 x12(:,1).*x12(:,2) ...
+            x12(:,1) x12(:,2) ones(size(x12,1),1)];
+
+        designObsM = [xobs(:,1).^2 xobs(:,2).^2 xobs(:,1).*xobs(:,2) ...
+            xobs(:,1) xobs(:,2) ones(size(xobs,1),1)];
+
+        ymod    = designM*pmod';
+
+        yresid  = ymod-designObsM*pmod';
+        dydx1obs= designObsM*dpmoddx1';
+        dydx2obs= designObsM*dpmoddx2';
+        dydxobs = [dydx1obs(:) dydx2obs(:)];
+
+        yM = reshape(ymod,size(x1M));
+
+        measGrpID = ones(size(yresid));
+
+        opt = [];
+
+        [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
+            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,...
+            measGrpID,opt);
+
+        %x1Sv = linspace(-.5,.5,21);
+        %x2Sv = linspace(-.1,.1,23);
+        %[x1SM,x2SM] = meshgrid(x1v,x2v);
+        %nLogPSM = zeros(length(x1Sv),length(x2Sv));
+        %for(i=1:length(x1Sv))
+        %    for(j=1:length(x2Sv))
+        %        nLogPSM(i,j) = nLogPFun([x1Sv(i),x2Sv(j)]);
+        %    end
+        %end
+        %contour(x2Sv,x1Sv,nLogPSM-nLogPFun(pfitErrMod),[ 0 1 2])
+        %hold on;
+        %plot(pfitErrMod(2),pfitErrMod(1),'kx',ptrueErrMod(2),ptrueErrMod(1),'ro')
+        %hold off;
+
+        %sclMag = linspace(-.6,.6,30);
+        %nLogPScl  = zeros(size(sclMag));
+        %nLogPTrans= zeros(size(sclMag));
+        %for(i=1:length(sclMag))
+        %    nLogPTrans(i) = nLogPFun([sclMag(i)  0]);
+        %end
+        %plot(sclMag,nLogPTrans,'k-')
+
+        [pfitcovErrMod] = estParamCov(nLogPFun,pfitErrMod,[],opt);
+        iabsDev = (ptrueErrMod-pfitErrMod);
+        irelDev = (ptrueErrMod-pfitErrMod)./sqrt(diag(pfitcovErrMod))';
+
+        absDev(i,:) = iabsDev;
+        relDev(i,:) = irelDev;
+        fitList(i,:) = pfitErrMod;
+    end
+
+    %ptrueErrMod
+    %hist(fitList(:,1),10)
+    %hist(fitList(:,2),10)
+
+    %hist(relDev(:,1),10)
+    %hist(relDev(:,2),10)
+
+    verifyTrue(testCase,abs(mean(relDev(:,1)))/std(relDev(:,1)) < 1 ,...
+        ['Distribution of normalized errMod params must have small systematic '...
+        'deviation from truth (ie. within 1 sigma of zero)']);
+    verifyTrue(testCase,abs(log(std(relDev(:,1)))) < TOLWID ,...
+        ['Distribution of normalized errMod param for avg magnitude must '...
+        'have width close to truth (ie. within TOLWID of 1)']);
 end

@@ -1,11 +1,14 @@
+% fitErrModPVT - get ErrModel params, ensuring that errorbars match residuals
+% pErrMod = [adjVerr, adjTerr]
 function [pfitErrMod, pfitcovErrMod, nLogPFun] = fitErrModPVT(pinitErrMod,...
         priorErrMod,priorcovErrMod,Presid,PmarkDerivs,PsampDerivs,...
         VmarkErr,VsampErr,TErr,measGrpID,opt)
 
     uniqMeasGrpID = unique(measGrpID);
     NMeasGrp = length(uniqMeasGrpID);
-    assert(length(pinitErrMod) == 3*NMeasGrp, ...
-        'errMod must have 3 params for each unique measGrpID value');
+
+    VVTErr = [VmarkErr VsampErr TErr];
+
 
     % Construct derivative matrix for residual Pressure values
     %   NOTE: Temp deriv effects tend to cancel out Temp errors due to
@@ -13,8 +16,10 @@ function [pfitErrMod, pfitcovErrMod, nLogPFun] = fitErrModPVT(pinitErrMod,...
     PresidDerivs = [PmarkDerivs(:,1) PsampDerivs(:,1) ...
         (PmarkDerivs(:,2)-PsampDerivs(:,2))];
     %Vmark, Vsamp, Terr
-    VVTErr = [VmarkErr,VsampErr,TErr];
+    %pErrMod = [adjVerr, adjTerr]
+    linTransM = [1 0 0; 1 0 0; 0 1 0];
+
     [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
-        priorErrMod,priorcovErrMod,Presid,PresidDerivs,VVTErr,measGrpID,opt);
+        priorErrMod,priorcovErrMod,linTransM,Presid,PresidDerivs,VVTErr,measGrpID,opt);
     [pfitcovErrMod] = estParamCov(nLogPFun,pfitErrMod,[],opt);
 end

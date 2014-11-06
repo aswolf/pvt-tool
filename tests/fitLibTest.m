@@ -196,12 +196,14 @@ end
 function testFitErrModPVT_synth(testCase)
     rndSeed = 42;
     rng(rndSeed)
-    TOL = 1e-3;
+    TOLWID = 0.3;
 
     [pColdEosMgPv,pHotEosMgPv,T0MgPv,coldEosFunMgPv,hotEosFunMgPv,...
         hotExtraInputsMgPv,addedThermPressFunMgPv] = getMgPvEos();
     [pColdEosMgO,pHotEosMgO,T0MgO,coldEosFunMgO,hotEosFunMgO,...
         hotExtraInputsMgO,addedThermPressFunMgO] = getMgOEos();
+
+    Ndraw = 30;
 
     Ncold = 8;
     NhotCyc = 3;
@@ -238,46 +240,53 @@ function testFitErrModPVT_synth(testCase)
     %VmarkObs = Vmark + VmarkErr.*randn(size(VmarkErr));
     %VsampObs = Vsamp + VsampErr.*randn(size(VsampErr));
     %TObs     = T     + TErr.*randn(size(TErr));
-    VmarkObs = Vmark + exp(ptrueErrMod(1))*VmarkErr.*randn(size(VmarkErr));
-    VsampObs = Vsamp + exp(ptrueErrMod(2))*VsampErr.*randn(size(VsampErr));
-    TObs     = T     + exp(ptrueErrMod(3))*TErr.*randn(size(TErr));
+    relDev = zeros(Ndraw,2);
+    for(i=1:Ndraw)
+        VmarkObs = Vmark + exp(ptrueErrMod(1))*VmarkErr.*randn(size(VmarkErr));
+        VsampObs = Vsamp + exp(ptrueErrMod(2))*VsampErr.*randn(size(VsampErr));
+        TObs     = T     + exp(ptrueErrMod(3))*TErr.*randn(size(TErr));
 
-    [PmarkObs,KTmarkObs,CvmarkObs,gammarkObs,thmExpmarkObs] = ...
-        calcPressThermAddEos(VmarkObs,TObs,T0MgO,pColdEosMgO,pHotEosMgO,...
-        coldEosFunMgO,hotEosFunMgO,hotExtraInputsMgO,addedThermPressFunMgO);
+        [PmarkObs,KTmarkObs,CvmarkObs,gammarkObs,thmExpmarkObs] = ...
+            calcPressThermAddEos(VmarkObs,TObs,T0MgO,pColdEosMgO,pHotEosMgO,...
+            coldEosFunMgO,hotEosFunMgO,hotExtraInputsMgO,addedThermPressFunMgO);
 
-    [PsampObs,KTsampObs,CvsampObs,gamsampObs,thmExpsampObs] = ...
-        calcPressThermAddEos(VsampObs,TObs,T0MgPv,pColdEosMgPv,pHotEosMgPv,...
-        coldEosFunMgPv,hotEosFunMgPv,hotExtraInputsMgPv,addedThermPressFunMgPv);
+        [PsampObs,KTsampObs,CvsampObs,gamsampObs,thmExpsampObs] = ...
+            calcPressThermAddEos(VsampObs,TObs,T0MgPv,pColdEosMgPv,pHotEosMgPv,...
+            coldEosFunMgPv,hotEosFunMgPv,hotExtraInputsMgPv,addedThermPressFunMgPv);
 
-    dPmarkdVObs    = -KTmarkObs./VmarkObs;
-    dPmarkdTObs    = KTmarkObs.*thmExpmarkObs;
-    PmarkderivsObs = [dPmarkdVObs,dPmarkdTObs];
+        dPmarkdVObs    = -KTmarkObs./VmarkObs;
+        dPmarkdTObs    = KTmarkObs.*thmExpmarkObs;
+        PmarkderivsObs = [dPmarkdVObs,dPmarkdTObs];
 
-    dPsampdVObs    = -KTsampObs./VsampObs;
-    dPsampdTObs    = KTsampObs.*thmExpsampObs;
-    PsampderivsObs = [dPsampdVObs,dPsampdTObs];
-    
-    %scatter(PmarkObs,VmarkObs,50,T,'o','filled')
-    %scatter(PsampObs,VsampObs,50,T,'o','filled')
+        dPsampdVObs    = -KTsampObs./VsampObs;
+        dPsampdTObs    = KTsampObs.*thmExpsampObs;
+        PsampderivsObs = [dPsampdVObs,dPsampdTObs];
 
-    PresidObs = PmarkObs - PsampObs;
+        %scatter(PmarkObs,VmarkObs,50,T,'o','filled')
+        %scatter(PsampObs,VsampObs,50,T,'o','filled')
 
-    measGrpID = ones(length(PresidObs),1);
-    pinitErrMod = [0 0 0];
-    priorErrMod = pinitErrMod;
-    priorcovErrMod = diag((.3*[1 1 1]).^2);
-    opt = [];
-    [pfitErrMod, pfitcovErrMod] = fitErrModPVT(pinitErrMod,...
-        priorErrMod,priorcovErrMod,PresidObs,PmarkderivsObs,PsampderivsObs,...
-        VmarkErr,VsampErr,TErr,measGrpID,opt);
-    pfitErrModCredWid = sqrt(diag(pfitcovErrMod)');
+        PresidObs = PmarkObs - PsampObs;
 
-    relDev = pfitErrMod./pfitErrModCredWid;
+        measGrpID = ones(length(PresidObs),1);
+        pinitErrMod = [0 0];
+        priorErrMod = pinitErrMod;
+        priorcovErrMod = diag((.3*[1 1]).^2);
+        opt = [];
+        [pfitErrMod, pfitcovErrMod] = fitErrModPVT(pinitErrMod,...
+            priorErrMod,priorcovErrMod,PresidObs,PmarkderivsObs,PsampderivsObs,...
+            VmarkErr,VsampErr,TErr,measGrpID,opt);
+        pfitErrModCredWid = sqrt(diag(pfitcovErrMod)');
 
-    verifyTrue(testCase,all(abs(relDev)<1),...
-        ['Deviation from zero must be less than '...
-        'credible region width for errorMod params']);
+        irelDev = pfitErrMod./pfitErrModCredWid;
+        relDev(i,:) = irelDev;
+    end
+
+    verifyTrue(testCase,abs(mean(relDev(:,1)))/std(relDev(:,1)) < 1 ,...
+        ['Distribution of normalized errMod params must have small systematic '...
+        'deviation from truth (ie. within 1 sigma of zero)']);
+    verifyTrue(testCase,abs(log(std(relDev(:,1)))) < TOLWID ,...
+        ['Distribution of normalized errMod param for avg magnitude must '...
+        'have width close to truth (ie. within TOLWID of 1)']);
 end
 
 
