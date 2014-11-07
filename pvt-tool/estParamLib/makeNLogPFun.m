@@ -4,6 +4,10 @@ function nLogPFun = makeNLogPFun(wtResidFun,prior,priorcov,opt)
     optDefault = getEstParamDefaultOpt();
     opt = setDefaultOpt(opt,optDefault);
 
+    assert(all(diag(priorcov)>0 | isnan(diag(priorcov))),...
+        ['priorcov must have positive diagonal vals. If param is fixed, set '...
+        'its diagonal to NaN.']);
+
     % Filter out unconstrained variables from prior weighting
     %  - unconstrained variables shown by infinite variance
     %  - NaN values mark fixed params post fitting, so ignore these too

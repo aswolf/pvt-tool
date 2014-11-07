@@ -122,3 +122,32 @@ function testGetPVTdata_MgPvTange2012(testCase)
     PVTdata = getPVTdata_MgPvTange2012();
     verifyTrue(testCase,true,'Must be able to initialize PVTdata without error');
 end
+function testFitSampModPVTeval_MgPvTange2012(testCase)
+    %PVTdata = getPVTdata_MgPvTange2012();
+    PVTdata = getPVTdata_MgPvTange2012_compare();
+
+    eosMgPvT12 = getEos_MgPvTange2012();
+    eosMgOMod = getEos_MgOTange2009();
+
+    eosMgPvPrior = eosMgPvT12;
+    pEosPrior = eosMgPvT12.pEos;
+    pEosPrior(5:6) = 1;
+    eosMgPvPrior.pEos = pEosPrior;
+    eosMgPvPrior.pEosCov = zeros(7);
+    eosMgPvPrior.pEosCov(2,2) = Inf;
+    eosMgPvPrior.pEosCov(3,3) = Inf;
+    eosMgPvPrior.pEosCov(4,4) = 200^2;
+    eosMgPvPrior.pEosCov(5,5) =   1^2;
+    eosMgPvPrior.pEosCov(6,6) =   1^2;
+    fixFlag = [1 0 0 0 0 0 1];
+
+    name = 'Tange2012:full refine';
+    opt = [];
+    PVTeval = initPVTeval(name,PVTdata,eosMgPvPrior,opt);
+    
+    eosMgPvInit = eosMgPvPrior;
+    %keyboard;
+    PVTeval = fitSampModPVTeval(PVTeval,eosMgPvInit,fixFlag);
+
+    %verifyTrue(testCase,true,'Must be able to initialize PVTdata without error');
+end

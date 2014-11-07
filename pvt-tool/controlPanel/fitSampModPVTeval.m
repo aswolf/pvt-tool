@@ -1,36 +1,72 @@
-function PVTeval = fitSampModPVTeval(PVTeval)
+function PVTeval = fitSampModPVTeval(PVTeval,eosInitMod,fixFlag)
     % fit sample eos given total errors defined in PVTdata
     % update sampEos in PVTeval
-    % updateModPVTeval (with new presid, sampPderivs, Perr
-    %    - should this be a separate function?
     %
+    eosPriorMod = PVTeval.sampEosPrior;
+    if(isempty(eosInitMod))
+        eosInitMod = eosPriorMod;
+    end
 
-    eosMod = PVTeval.sampEos;
+    PVTdataList = PVTeval.PVTdataList;
+    assert(numel(PVTdataList)==1,...
+        'Multiple datasets in PVTdataList not yet implemented');
+    PVTdata = PVTdataList(1);
 
-    T0                 = eosMod.T0                 ;
-    NpCold             = eosMod.NpCold             ;
-    coldEosFun         = eosMod.coldEosFun         ;
-    hotEosFun          = eosMod.hotEosFun          ;
-    hotExtraInputs     = eosMod.hotExtraInputs     ;
-    addedThermPressFun = eosMod.addedThermPressFun ;
+    P = PVTdata.Pmark;
+    V = PVTdata.V;
+    T = PVTdata.T;
 
-    priorEos = eosMod.pEos;
-    pinitEos = priorEos;
+    % Propagate errors to total errors in pressure
+    [Psamp,PsampDerivs] = evalPressEos([],eosInitMod,V,T);
+    PVTdata = updatePVTdata(PVTdata,PsampDerivs);
+    PerrTot = PVTdata.PErrTot;
+
+    T0                 = eosPriorMod.T0                 ;
+    NpCold             = eosPriorMod.NpCold             ;
+    coldEosFun         = eosPriorMod.coldEosFun         ;
+    hotEosFun          = eosPriorMod.hotEosFun          ;
+    hotExtraInputs     = eosPriorMod.hotExtraInputs     ;
+    addedThermPressFun = eosPriorMod.addedThermPressFun ;
+
+    priorEos = eosPriorMod.pEos;
+    pinitEos = eosInitMod.pEos;
+    priorcovEos = eosPriorMod.pEosCov;
+    pinitcovEos = eosPriorMod.pEosCov;
 
 
-    [pfit pfitcov nLogPFun] = fitHotCompressData(pinitEos,fixFlag,...
+    opt = PVTeval.opt;
+
+
+
+    [pfitEos pfitcovEos nLogPFun PressTotFun opt] = fitHotCompressData(pinitEos,fixFlag,...
         T0,NpCold,priorEos,priorcovEos,coldEosFun,hotEosFun,hotExtraInputs,...
         addedThermPressFun,P,V,T,PerrTot,opt);
-    
-    pressFun = @(V,T,pEos)(calcPressThermAddEos(V,T,T0,...
-        pEos(1:NpCold),pEos(NpCold+1:end),coldEosFun,hotEosFun,hotExtraInputs,...
-        addedThermPressFun));
 
+    eosFitMod = eosInitMod;
+    eosFitMod.pEos = pfitEos;
+    eosFitMod.pEosCov = pfitcovEos;
 
+    %pressFun = @(V,T,pEos)(calcPressThermAddEos(V,T,T0,...
+    %    pEos(1:NpCold),pEos(NpCold+1:end),coldEosFun,hotEosFun,hotExtraInputs,...
+    %    addedThermPressFun));
+    [Psamp,KTsamp,Cvsamp,gamsamp,thmExpsamp] = PressTotFun(V,T,pfitEos);
 
+    dPsampdV    = -KTsamp./V;
+    dPsampdT    = KTsamp.*thmExpsamp;
+    PsampDerivs = [dPsampdV,dPsampdT];
 
-    pressFun = @(V,T,pEos)(calcPressThermAddEos(V,T,T0,...
-        pEos(1:NpCold),pEos(NpCold+1:end),coldEosFun,hotEosFun,hotExtraInputs,...
-        addedThermPressFun));
-    [P,KT,Cv,gam,thmExp] = pressFun(V,T,pEos);
+    % Propagate errors to total errors in pressure
+    PVTdata = updatePVTdata(PVTdata,PsampDerivs);
+
+    %Update list element
+    PVTdataList(1) = PVTdata;
+
+    PVTeval.PVTdataList  = PVTdataList;
+    PVTeval.fixFlag      = fixFlag;
+    PVTeval.sampEosInit = eosInitMod;
+    PVTeval.sampEosFit   = eosFitMod;
+    PVTeval.nLogPFun  = nLogPFun;
+    PVTeval.opt = opt;
+    PVTeval.Psamp = Psamp;
+    PVTeval.PsampDerivs = PsampDerivs;
 end

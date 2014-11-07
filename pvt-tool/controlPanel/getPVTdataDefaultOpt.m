@@ -1,4 +1,8 @@
 function optDefault = getPVTdataDefaultOpt();
+    optDefault.calcPmark = true;
+    optDefault.invVmark  = false;
+    optDefault.pressFixed = false;
+
     optDefault.relErrPmark = false;
     optDefault.relErrVmark = false;
     optDefault.relErrV     = false;

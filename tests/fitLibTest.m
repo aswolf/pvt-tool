@@ -267,7 +267,7 @@ function testFitErrModPVT_synth(testCase)
 
         PresidObs = PmarkObs - PsampObs;
 
-        measGrpID = ones(length(PresidObs),1);
+        measGrpID = cellstr(num2str(ones(length(PresidObs),1)));
         pinitErrMod = [0 0];
         priorErrMod = pinitErrMod;
         priorcovErrMod = diag((.3*[1 1]).^2);
@@ -289,6 +289,9 @@ function testFitErrModPVT_synth(testCase)
         'have width close to truth (ie. within TOLWID of 1)']);
 end
 
+function testFitErrModPVT_synthMultiMeasGrp_NOT(testCase)
+    verifyTrue(testCase,false,'multiple measGrp not yet implemented');
+end
 
 
 function [pColdEos,pHotEos,T0,coldEosFun,hotEosFun,hotExtraInputs,...

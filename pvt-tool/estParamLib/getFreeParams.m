@@ -2,7 +2,7 @@
 function [pinitFree,priorFree,priorcovFree] = ...
         getFreeParams(pinit,prior,priorcov,fixFlag)
     if(isempty(fixFlag))
-        fixFlag = ones(size(pinit));
+        fixFlag = zeros(size(pinit));
     end
 
     checkInput(pinit,prior,priorcov,fixFlag);
@@ -32,9 +32,10 @@ function checkInput(pinit,prior,priorcov,fixFlag)
 
     assert(all(size(priorcov) == length(prior)*[1 1]),...
         'priorcov must be square matrix with dim. equal to prior length.');
-    assert(all(diag(priorcov)~=0),...
-        ['Diagonal elements of cov matrix cannot be zero. '... 
-        'Use fixFlag to fix params']);
+    diagFree = sub2ind(size(priorcov),find(fixFlag==0),find(fixFlag==0));
+    assert(all(priorcov(diagFree)~=0),...
+        ['Diagonal elements of cov matrix cannot be zero unless '...
+        'they are fixed params. Use fixFlag to fix params']);
 
 end
 function checkOutput(pinitFree,priorFree,priorcovFree,fixFlag)

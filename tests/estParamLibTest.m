@@ -309,7 +309,7 @@ function testFitErrModResid_1dPolyDist(testCase)
         yresid = ymod - polyval(pmod,xobs);
         dydxobs = polyval(dpmod,xobs);
 
-        measGrpID = ones(size(yresid));
+        measGrpID = cellstr(num2str(ones(size(yresid))));
 
         pinitErrMod = [0];
         priorErrMod = [0];
@@ -329,13 +329,16 @@ function testFitErrModResid_1dPolyDist(testCase)
     %mean(relDev)
     %std(relDev)
 
-    assert(abs(mean(relDev))/std(relDev) < 1 ,...
+    verifyTrue(testCase,abs(mean(relDev))/std(relDev) < 1 ,...
         ['Distribution of normalized errMod params must have small systematic '...
         'deviation from truth (ie. within 1 sigma of zero)']);
-    assert(abs(log(std(relDev))) < TOLWID ,...
+    verifyTrue(testCase,abs(log(std(relDev))) < TOLWID ,...
         ['Distribution of normalized errMod params must have width close to '...
         'truth (ie. within TOLWID of 1)']);
 
+end
+function testFitErrModResid_1dPolyMultiMeasGrp_NOT(testCase)
+    verifyTrue(testCase,false ,'Multiple measGrpIDs not yet implemented');
 end
 
 function testFitErrModResid_2dPolyFunScl(testCase)
@@ -393,7 +396,7 @@ function testFitErrModResid_2dPolyFunScl(testCase)
 
         yM = reshape(ymod,size(x1M));
 
-        measGrpID = ones(size(yresid));
+        measGrpID = cellstr(num2str(ones(size(yresid))));
 
 
         [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
@@ -471,7 +474,7 @@ function testFitErrModResid_2dPolyLinTransEquiv(testCase)
 
     yM = reshape(ymod,size(x1M));
 
-    measGrpID = ones(size(yresid));
+    measGrpID = cellstr(num2str(ones(size(yresid))));
 
 
     [tr nLogPFun] = fitErrModResid(pinitErrMod,...
@@ -559,7 +562,7 @@ function testFitErrModResid_2dPolyLinTransFitScl(testCase)
 
         yM = reshape(ymod,size(x1M));
 
-        measGrpID = ones(size(yresid));
+        measGrpID = cellstr(num2str(ones(size(yresid))));
 
         opt = [];
 
@@ -654,7 +657,7 @@ function testFitErrModResid_2dPolyLinTransFit_NOT(testCase)
 
         yM = reshape(ymod,size(x1M));
 
-        measGrpID = ones(size(yresid));
+        measGrpID = cellstr(num2str(ones(size(yresid))));
 
         opt = [];
 

@@ -9,6 +9,15 @@ function [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
     if(isempty(linTransM))
         linTransM = [eye(numel(priorErrMod)) zeros(numel(priorErrMod),1)];
     end
+    % If unspecified, measGrpID = '1' for all datapoints
+    if(isempty(measGrpID))
+        measGrpID = '1';
+    end
+    % If only one group specified, measGrpID is the same for all datapoints
+    if(isstr(measGrpID))
+        Ndat = length(yresid);
+        measGrpID = cellstr(repmat(measGrpID,Ndat,1));
+    end
 
     checkInput(pinitErrMod,priorErrMod,priorcovErrMod,linTransM,yresid,dydxmod,xerr,measGrpID);
 
@@ -41,6 +50,7 @@ function checkInput(pinitErrMod,priorErrMod,priorcovErrMod,linTransM,...
     Ndat = size(yresid,1);
     uniqID = unique(measGrpID);
 
+
     assert(length(priorErrMod)==NpErrMod,...
         'Number of error mod params must be equal in prior and init');
     assert(all(NpErrMod*[1 1]==size(priorcovErrMod)),...
@@ -50,7 +60,6 @@ function checkInput(pinitErrMod,priorErrMod,priorcovErrMod,linTransM,...
 
     assert(size(dydxmod,1)==Ndat,'dydxmod must have one row per datum.')
     assert(size(xerr,1)==Ndat,'xerr must have one row per datum.')
-    assert(size(measGrpID,1)==Ndat,'measGrpID must have one row per datum.')
 
     assert(size(xerr,2)==dimx,'xerr must have one col per x dimension.')
 
@@ -59,8 +68,12 @@ function checkInput(pinitErrMod,priorErrMod,priorcovErrMod,linTransM,...
     assert(size(linTransM,2)==NpErrMod+1,['linTransM must have one col per '...
         'errMod parameter plus one extra for offsets.']);
 
-    assert(uniqID(1)==1,'measGrpID must start with 1.');
-    assert(all(diff(uniqID)==1),'measGrpID must be an array of integers');
+    assert(iscellstr(measGrpID),...
+        'measGrpID must be a cell array of strings identifying each group');
+    assert(length(measGrpID)==Ndat,'measGrpID must have one entry per datum.')
+
+    %assert(uniqID(1)==1,'measGrpID must start with 1.');
+    %assert(all(diff(uniqID)==1),'measGrpID must be an array of integers');
     %assert(dimx*length(uniqID)==NpErrMod,...
     %    'Number of error mod params must be equal to the num of measGrps*dimx');
 end

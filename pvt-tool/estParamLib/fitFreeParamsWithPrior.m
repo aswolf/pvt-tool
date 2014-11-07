@@ -5,6 +5,9 @@ function [pfit nLogPFun] = fitFreeParamsWithPrior(pinit,fixFlag,...
     optDefault = getEstParamDefaultOpt();
     opt = setDefaultOpt(opt,optDefault);
 
+    % Set diagonal value of cov matrix to NaN to indicate fixed parameters
+    indFixDiag = sub2ind(size(priorcov),find(fixFlag==1),find(fixFlag==1));
+    priorcov(indFixDiag) = NaN;
     nLogPFun = makeNLogPFun(wtResidFun,prior,priorcov,opt);
     
     % Obtain free parameter subset 

@@ -54,7 +54,7 @@ function PVTdata = getPVTdata_MgPvTange2012()
     TErr = PVT(:,7);
     Vmark    = PVT(:,8);
     VmarkErr = PVT(:,9);
-    measGrpID = PVT(:,1);
+    measGrpID = cellstr(num2str(PVT(:,1)));
 
     % Tange 2012 uses MgO press scl of Tange 2009
     name = 'MgPvData-Tange2012';
@@ -62,7 +62,11 @@ function PVTdata = getPVTdata_MgPvTange2012()
     markLbl = eosMod_MgO.name;
     opt = [];
 
-    PVTdata = initPVTdata(name,P,V,T,PErr,VErr,TErr,measGrpID,...
-        markLbl,eosMod_MgO,Vmark,VmarkErr,opt);
+    PVTdata = initPVTdata(name,opt);
+
+    PVTdata = setPVTdataMark(PVTdata,markLbl,eosMod_MgO,...
+        Vmark,V,T,VmarkErr,VErr,TErr,measGrpID);
+    %PVTdata = initPVTdata(name,P,V,T,PErr,VErr,TErr,measGrpID,...
+    %    markLbl,eosMod_MgO,Vmark,VmarkErr,opt);
 end
 
