@@ -114,7 +114,7 @@ function testFitHotCompressData_zeroMeasErr(testCase)
     NstepPerCyc = 4;
 
     V0 = pColdEos(1);
-    [V,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0);
+    [V,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0,[],[]);
 
     [Pmod,KTmod,Cvmod,gammod] = calcPressThermAddEos(V(:),T(:),T0,pColdEos,pHotEos,...
         coldEosFun,hotEosFun,hotExtraInputs,addedThermPressFun);
@@ -157,7 +157,7 @@ function testFitHotCompressData_fixSubset(testCase)
     NstepPerCyc = 4;
 
     V0 = pColdEos(1);
-    [V,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0);
+    [V,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0,[],[]);
 
     [Pmod,KTmod,Cvmod,gammod] = calcPressThermAddEos(V(:),T(:),T0,pColdEos,pHotEos,...
         coldEosFun,hotEosFun,hotExtraInputs,addedThermPressFun);
@@ -214,7 +214,7 @@ function testFitErrModPVT_synth(testCase)
     NstepPerCyc = 20;
     V0MgPv = pColdEosMgPv(1);
 
-    [Vsamp,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0MgPv);
+    [Vsamp,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0MgPv,[],[]);
 
     [Psamp,KTsamp,Cvsamp,gamsamp] = calcPressThermAddEos(Vsamp(:),T(:),...
         T0MgPv,pColdEosMgPv,pHotEosMgPv,coldEosFunMgPv,hotEosFunMgPv,...
@@ -267,14 +267,14 @@ function testFitErrModPVT_synth(testCase)
 
         PresidObs = PmarkObs - PsampObs;
 
-        measGrpID = cellstr(num2str(ones(length(PresidObs),1)));
+        measGrpID = 1;
         pinitErrMod = [0 0];
         priorErrMod = pinitErrMod;
         priorcovErrMod = diag((.3*[1 1]).^2);
         opt = [];
-        [pfitErrMod, pfitcovErrMod] = fitErrModPVT(pinitErrMod,...
+        [pfitErrMod, pfitcovErrMod] = fitErrModPVT(measGrpID,pinitErrMod,...
             priorErrMod,priorcovErrMod,PresidObs,PmarkderivsObs,PsampderivsObs,...
-            VmarkErr,VsampErr,TErr,measGrpID,opt);
+            VmarkErr,VsampErr,TErr,opt);
         pfitErrModCredWid = sqrt(diag(pfitcovErrMod)');
 
         irelDev = pfitErrMod./pfitErrModCredWid;
@@ -289,10 +289,323 @@ function testFitErrModPVT_synth(testCase)
         'have width close to truth (ie. within TOLWID of 1)']);
 end
 
-function testFitErrModPVT_synthMultiMeasGrp_NOT(testCase)
-    verifyTrue(testCase,false,'multiple measGrp not yet implemented');
+function testFitErrModPVT_synthMultiMeasGrp(testCase)
+    rndSeed = 42;
+    rng(rndSeed)
+    TOLWID = 0.3;
+
+    [pColdEosMgPv,pHotEosMgPv,T0MgPv,coldEosFunMgPv,hotEosFunMgPv,...
+        hotExtraInputsMgPv,addedThermPressFunMgPv] = getMgPvEos();
+    [pColdEosMgO,pHotEosMgO,T0MgO,coldEosFunMgO,hotEosFunMgO,...
+        hotExtraInputsMgO,addedThermPressFunMgO] = getMgOEos();
+
+    Ndraw = 30;
+
+    Ncold = 8;
+    NhotCyc = 3;
+    NstepPerCyc = 4;
+
+    Ncold = 60;
+    NhotCyc = 8;
+    NstepPerCyc = 20;
+    V0MgPv = pColdEosMgPv(1);
+
+    [Vsamp,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0MgPv,[],[]);
+
+    [Psamp,KTsamp,Cvsamp,gamsamp] = calcPressThermAddEos(Vsamp(:),T(:),...
+        T0MgPv,pColdEosMgPv,pHotEosMgPv,coldEosFunMgPv,hotEosFunMgPv,...
+        hotExtraInputsMgPv,addedThermPressFunMgPv);
+
+    Vmark = invertPressEos(Psamp,T,pColdEosMgO,pHotEosMgO,T0MgO,coldEosFunMgO,...
+        hotEosFunMgO,hotExtraInputsMgO,addedThermPressFunMgO);
+
+
+    %[Pcalc] = calcPressThermAddEos(Vmark,T,T0MgO,pColdEosMgO,pHotEosMgO,...
+    %    coldEosFunMgO,hotEosFunMgO,hotExtraInputsMgO,addedThermPressFunMgO);
+
+    indCold300 = find(T==300);
+    % Add errors to V and T
+    VsampErr = 0.003*Vsamp;
+    VmarkErr = 0.003*Vmark;
+    TErr     = 80*ones(size(T));
+    % Zero out errors for ambient temp meas
+    TErr(indCold300) = 0;
+
+    Ndat = length(Vsamp);
+
+    % keyboard;
+    % Randomly set half of data to second group
+    measGrpInd = ones(Ndat,1);
+    %measGrpInd(rand(Ndat,1)<0.5) = 2;
+    measGrpInd(T>310) = 2;
+    measGrpID = cellstr(num2str(measGrpInd));
+
+    % ptrueErrMod = [.2 -.2 .0];
+    %               grp1      grp2
+    %              dV  dT    dV  dT 
+    ptrueErrMod = [.2 -.2; -0.1 -.25];
+    ptrueErrMod = [.2 0; -0.1 .4];
+
+    %VmarkObs = Vmark + VmarkErr.*randn(size(VmarkErr));
+    %VsampObs = Vsamp + VsampErr.*randn(size(VsampErr));
+    %TObs     = T     + TErr.*randn(size(TErr));
+    relDev  = zeros(Ndraw,2,2);
+    fitdraw = zeros(Ndraw,2,2);
+    NGrp1 = sum(measGrpInd==1);
+    NGrp2 = sum(measGrpInd==2);
+    VmarkDev = zeros(Ndat,1);
+    VsampDev = zeros(Ndat,1);
+    TDev     = zeros(Ndat,1);
+    for(i=1:Ndraw)
+        VmarkDev(measGrpInd==1)=exp(ptrueErrMod(1,1))*VmarkErr(measGrpInd==1).*randn(NGrp1,1);
+        VmarkDev(measGrpInd==2)=exp(ptrueErrMod(2,1))*VmarkErr(measGrpInd==2).*randn(NGrp2,1);
+        VsampDev(measGrpInd==1)=exp(ptrueErrMod(1,1))*VsampErr(measGrpInd==1).*randn(NGrp1,1);
+        VsampDev(measGrpInd==2)=exp(ptrueErrMod(2,1))*VsampErr(measGrpInd==2).*randn(NGrp2,1);
+        TDev(measGrpInd==1)=exp(ptrueErrMod(1,2))*TErr(measGrpInd==1).*randn(NGrp1,1);
+        TDev(measGrpInd==2)=exp(ptrueErrMod(2,2))*TErr(measGrpInd==2).*randn(NGrp2,1);
+
+        VmarkObs = Vmark + VmarkDev;
+        VsampObs = Vsamp + VsampDev;
+        TObs     = T     + TDev;
+        %log(std(TDev(measGrpInd==2)')/TErr(end))       
+
+        [PmarkObs,KTmarkObs,CvmarkObs,gammarkObs,thmExpmarkObs] = ...
+            calcPressThermAddEos(VmarkObs,TObs,T0MgO,pColdEosMgO,pHotEosMgO,...
+            coldEosFunMgO,hotEosFunMgO,hotExtraInputsMgO,addedThermPressFunMgO);
+
+        [PsampObs,KTsampObs,CvsampObs,gamsampObs,thmExpsampObs] = ...
+            calcPressThermAddEos(VsampObs,TObs,T0MgPv,pColdEosMgPv,pHotEosMgPv,...
+            coldEosFunMgPv,hotEosFunMgPv,hotExtraInputsMgPv,addedThermPressFunMgPv);
+
+        dPmarkdVObs    = -KTmarkObs./VmarkObs;
+        dPmarkdTObs    = KTmarkObs.*thmExpmarkObs;
+        PmarkderivsObs = [dPmarkdVObs,dPmarkdTObs];
+
+        dPsampdVObs    = -KTsampObs./VsampObs;
+        dPsampdTObs    = KTsampObs.*thmExpsampObs;
+        PsampderivsObs = [dPsampdVObs,dPsampdTObs];
+
+        %scatter(PmarkObs,VmarkObs,50,T,'o','filled')
+        %scatter(PsampObs,VsampObs,50,T,'o','filled')
+
+        PresidObs = PmarkObs - PsampObs;
+
+        PresidDerivs = [PmarkderivsObs(:,1) PsampderivsObs(:,1) ...
+            (PmarkderivsObs(:,2)-PsampderivsObs(:,2))];
+
+        pinitErrModList = [0 0; 0 0];
+        priorErrModList = pinitErrModList;
+        priorcovErrModList = zeros(2,2,2);
+        priorcovErrModList(1,:,:) = diag(([0.3 0.3]).^2);
+        priorcovErrModList(2,:,:) = diag(([0.3 0.3]).^2);
+        opt = [];
+        [pfitErrModList, pfitcovErrModList, nLogPFunList] = fitErrModPVT(measGrpID,pinitErrModList,...
+            priorErrModList,priorcovErrModList,PresidObs,PmarkderivsObs,PsampderivsObs,...
+            VmarkErr,VsampErr,TErr,opt);
+        pfitErrModCredWidList(1,:) = sqrt(diag(squeeze(pfitcovErrModList(1,:,:)))');
+        pfitErrModCredWidList(2,:) = sqrt(diag(squeeze(pfitcovErrModList(2,:,:)))');
+
+        fitdraw(i,:,:) = pfitErrModList;
+        irelDev = (pfitErrModList-ptrueErrMod(:,1:2)) ./pfitErrModCredWidList;
+        relDev(i,:,:) = irelDev;
+    end
+    %ptrueErrMod
+    %hist(fitdraw(:,1,1),8)
+    %hist(fitdraw(:,2,1),8)
+    %hist(fitdraw(:,1,2),8)
+    %hist(fitdraw(:,2,2),8)
+
+    %hist(relDev(:,:,1),8)
+    %hist(relDev(:,:,2),8)
+    %hist(relDev(:,1,2),8)
+
+    verifyTrue(testCase,false ,...
+        ['MultiMeasGrp tested by hand but not automated yet']);
+    verifyTrue(testCase,abs(mean(relDev(:,1)))/std(relDev(:,1)) < 1 ,...
+        ['Distribution of normalized errMod params must have small systematic '...
+        'deviation from truth (ie. within 1 sigma of zero)']);
+    verifyTrue(testCase,abs(log(std(relDev(:,1)))) < TOLWID ,...
+        ['Distribution of normalized errMod param for avg magnitude must '...
+        'have width close to truth (ie. within TOLWID of 1)']);
 end
 
+function testFitErrModPVT_synthMultiMeasGrpSoftPmark(testCase)
+    rndSeed = 42;
+    rng(rndSeed)
+    TOLWID = 0.3;
+
+    [pColdEosMgPv,pHotEosMgPv,T0MgPv,coldEosFunMgPv,hotEosFunMgPv,...
+        hotExtraInputsMgPv,addedThermPressFunMgPv] = getMgPvEos();
+    [pColdEosNe,pHotEosNe,T0Ne,coldEosFunNe,hotEosFunNe,...
+        hotExtraInputsNe,addedThermPressFunNe] = getNeEos();
+
+    Ndraw = 30;
+
+    Ncold = 8;
+    NhotCyc = 3;
+    NstepPerCyc = 4;
+
+    Ncold = 60;
+    NhotCyc = 8;
+    NstepPerCyc = 20;
+    V0MgPv = pColdEosMgPv(1);
+
+    [Vsamp,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0MgPv,...
+        [.75 .9],[1000 3000]);
+
+    [Psamp,KTsamp,Cvsamp,gamsamp] = calcPressThermAddEos(Vsamp(:),T(:),...
+        T0MgPv,pColdEosMgPv,pHotEosMgPv,coldEosFunMgPv,hotEosFunMgPv,...
+        hotExtraInputsMgPv,addedThermPressFunMgPv);
+
+    Vmark = invertPressEos(Psamp,T,pColdEosNe,pHotEosNe,T0Ne,coldEosFunNe,...
+        hotEosFunNe,hotExtraInputsNe,addedThermPressFunNe);
+
+    [Pcalc] = calcPressThermAddEos(Vmark,T,T0Ne,pColdEosNe,pHotEosNe,...
+        coldEosFunNe,hotEosFunNe,hotExtraInputsNe,addedThermPressFunNe);
+    
+    indCold300 = find(T==300);
+    % Add errors to V and T
+    VsampErr = 0.003*Vsamp;
+    VmarkErr = 0.003*Vmark;
+    TErr     = 80*ones(size(T));
+    % Zero out errors for ambient temp meas
+    TErr(indCold300) = 0;
+
+    Ndat = length(Vsamp);
+
+    % keyboard;
+    % Randomly set half of data to second group
+    measGrpInd = ones(Ndat,1);
+    %measGrpInd(rand(Ndat,1)<0.5) = 2;
+    measGrpInd(T>310) = 2;
+    measGrpID = cellstr(num2str(measGrpInd));
+
+    % ptrueErrMod = [.2 -.2 .0];
+    %               grp1      grp2
+    %              dV  dT    dV  dT 
+    ptrueErrMod = [.2 -.2; -0.1 -.25];
+    ptrueErrMod = [.2 0; -0.1 -.2];
+
+    %VmarkObs = Vmark + VmarkErr.*randn(size(VmarkErr));
+    %VsampObs = Vsamp + VsampErr.*randn(size(VsampErr));
+    %TObs     = T     + TErr.*randn(size(TErr));
+    relDev  = zeros(Ndraw,2,2);
+    fitdraw = zeros(Ndraw,2,2);
+    PErrTermMagList = zeros(Ndraw,2,3);
+    NGrp1 = sum(measGrpInd==1);
+    NGrp2 = sum(measGrpInd==2);
+    VmarkDev = zeros(Ndat,1);
+    VsampDev = zeros(Ndat,1);
+    TDev     = zeros(Ndat,1);
+    for(i=1:Ndraw)
+        VmarkDev(measGrpInd==1)=exp(ptrueErrMod(1,1))*VmarkErr(measGrpInd==1).*randn(NGrp1,1);
+        VmarkDev(measGrpInd==2)=exp(ptrueErrMod(2,1))*VmarkErr(measGrpInd==2).*randn(NGrp2,1);
+        VsampDev(measGrpInd==1)=exp(ptrueErrMod(1,1))*VsampErr(measGrpInd==1).*randn(NGrp1,1);
+        VsampDev(measGrpInd==2)=exp(ptrueErrMod(2,1))*VsampErr(measGrpInd==2).*randn(NGrp2,1);
+        TDev(measGrpInd==1)=exp(ptrueErrMod(1,2))*TErr(measGrpInd==1).*randn(NGrp1,1);
+        TDev(measGrpInd==2)=exp(ptrueErrMod(2,2))*TErr(measGrpInd==2).*randn(NGrp2,1);
+
+        VmarkObs = Vmark + VmarkDev;
+        VsampObs = Vsamp + VsampDev;
+        TObs     = T     + TDev;
+        %log(std(TDev(measGrpInd==2)')/TErr(end))       
+
+        [PmarkObs,KTmarkObs,CvmarkObs,gammarkObs,thmExpmarkObs] = ...
+            calcPressThermAddEos(VmarkObs,TObs,T0Ne,pColdEosNe,pHotEosNe,...
+            coldEosFunNe,hotEosFunNe,hotExtraInputsNe,addedThermPressFunNe);
+
+        [PsampObs,KTsampObs,CvsampObs,gamsampObs,thmExpsampObs] = ...
+            calcPressThermAddEos(VsampObs,TObs,T0MgPv,pColdEosMgPv,pHotEosMgPv,...
+            coldEosFunMgPv,hotEosFunMgPv,hotExtraInputsMgPv,addedThermPressFunMgPv);
+
+        dPmarkdVObs    = -KTmarkObs./VmarkObs;
+        dPmarkdTObs    = KTmarkObs.*thmExpmarkObs;
+        PmarkderivsObs = [dPmarkdVObs,dPmarkdTObs];
+
+        dPsampdVObs    = -KTsampObs./VsampObs;
+        dPsampdTObs    = KTsampObs.*thmExpsampObs;
+        PsampderivsObs = [dPsampdVObs,dPsampdTObs];
+
+        %scatter(PmarkObs,VmarkObs,50,T,'o','filled')
+        %scatter(PsampObs,VsampObs,50,T,'o','filled')
+
+        PresidObs = PmarkObs - PsampObs;
+
+        PresidDerivs = [PmarkderivsObs(:,1) PsampderivsObs(:,1) ...
+            (PmarkderivsObs(:,2)-PsampderivsObs(:,2))];
+        iPErrTermMag = abs(PresidDerivs).*[VmarkErr VsampErr TErr];
+        PErrTermMagList(i,1,:)  = median(iPErrTermMag(measGrpInd==1,:));
+        PErrTermMagList(i,2,:)  = median(iPErrTermMag(measGrpInd==2,:));
+
+        pinitErrModList = [0 0; 0 0];
+        priorErrModList = pinitErrModList;
+        priorcovErrModList = zeros(2,2,2);
+        priorcovErrModList(1,:,:) = diag(([0.3 0.3]).^2);
+        priorcovErrModList(2,:,:) = diag(([0.3 0.3]).^2);
+        opt = [];
+        [pfitErrModList, pfitcovErrModList, nLogPFunList] = fitErrModPVT(measGrpID,pinitErrModList,...
+            priorErrModList,priorcovErrModList,PresidObs,PmarkderivsObs,PsampderivsObs,...
+            VmarkErr,VsampErr,TErr,opt);
+        pfitErrModCredWidList(1,:) = sqrt(diag(squeeze(pfitcovErrModList(1,:,:)))');
+        pfitErrModCredWidList(2,:) = sqrt(diag(squeeze(pfitcovErrModList(2,:,:)))');
+
+        fitdraw(i,:,:) = pfitErrModList;
+        irelDev = (pfitErrModList-ptrueErrMod(:,1:2)) ./pfitErrModCredWidList;
+        relDev(i,:,:) = irelDev;
+    end
+    PErrTermMag(1,:) = median(squeeze(PErrTermMagList(:,1,:)));
+    PErrTermMag(2,:) = median(squeeze(PErrTermMagList(:,2,:)));
+    %PErrTermMag
+    %ptrueErrMod
+    %hist(fitdraw(:,1,1),8)
+    %hist(fitdraw(:,2,1),8)
+    %hist(fitdraw(:,1,2),8)
+    %hist(fitdraw(:,2,2),8)
+
+    %hist(relDev(:,:,1),8)
+    %hist(relDev(:,:,2),8)
+    %hist(relDev(:,2,2),8)
+
+    verifyTrue(testCase,false ,...
+        ['MultiMeasGrp Soft Pmark tested by hand but not automated yet']);
+    verifyTrue(testCase,abs(mean(relDev(:,1)))/std(relDev(:,1)) < 1 ,...
+        ['Distribution of normalized errMod params must have small systematic '...
+        'deviation from truth (ie. within 1 sigma of zero)']);
+    verifyTrue(testCase,abs(log(std(relDev(:,1)))) < TOLWID ,...
+        ['Distribution of normalized errMod param for avg magnitude must '...
+        'have width close to truth (ie. within TOLWID of 1)']);
+end
+
+function [pColdEos,pHotEos,T0,coldEosFun,hotEosFun,hotExtraInputs,...
+        addedThermPressFun] = getNeEos()
+
+    T0 = 300;
+    V0 = 22.234;
+    K0 = 1.070;
+    KP0= 8.40;
+
+    Natom = 4;
+    Tdeb0 = 75.1;
+    gam0  = 2.442;
+    q = 0.97;
+
+    pColdEos = [V0 K0 KP0];
+    pHotEos  = [Tdeb0 gam0 q 1.0];
+    
+    pEos = [pColdEos pHotEos];
+    NpCold = length(pColdEos);
+
+    % DOES NOT INCLUDE CORRELATION
+    pEosCov = diag([0 0.016 0.03 0 0 0 0]);
+
+    coldEosFun = @VinetEos;
+    hotEosFun = @MieGrunDebyeHotEos;
+    debyeDerivsFun = @debyePowerLaw;
+
+    hotExtraInputs = {Natom, debyeDerivsFun};
+    addedThermPressFun = [];
+
+end
 
 function [pColdEos,pHotEos,T0,coldEosFun,hotEosFun,hotExtraInputs,...
         addedThermPressFun] = getMgPvEos()
@@ -358,11 +671,15 @@ function [pColdEos,pHotEos,T0,coldEosFun,hotEosFun,hotExtraInputs,...
 
 end
 
-function [V,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0)
+function [V,T] = makeIsobarPVTdata(Ncold,NhotCyc,NstepPerCyc,V0,VfacBnd,ThotBnd)
+    if(isempty(VfacBnd))
+        VfacBnd = [.7,1];
+    end
+    if(isempty(ThotBnd))
+        ThotBnd = [1000, 5000];
+    end
 
-    ThotBnd = [1000,5000];
-
-    VCold = V0*linspace(.7,1,Ncold)';
+    VCold = V0*linspace(VfacBnd(1), VfacBnd(2),Ncold)';
     TCold = 300*ones(Ncold,1);
     THotCycle = linspace(ThotBnd(1),ThotBnd(2),NstepPerCyc)';
     THot = repmat(THotCycle(:),NhotCyc,1);

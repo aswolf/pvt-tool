@@ -309,15 +309,13 @@ function testFitErrModResid_1dPolyDist(testCase)
         yresid = ymod - polyval(pmod,xobs);
         dydxobs = polyval(dpmod,xobs);
 
-        measGrpID = cellstr(num2str(ones(size(yresid))));
-
         pinitErrMod = [0];
         priorErrMod = [0];
         opt = [];
         linTransM = [];
 
         [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
-            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,measGrpID,opt);
+            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,opt);
 
         [pfitcovErrMod] = estParamCov(nLogPFun,pfitErrMod,[],opt);
 
@@ -337,8 +335,80 @@ function testFitErrModResid_1dPolyDist(testCase)
         'truth (ie. within TOLWID of 1)']);
 
 end
-function testFitErrModResid_1dPolyMultiMeasGrp_NOT(testCase)
-    verifyTrue(testCase,false ,'Multiple measGrpIDs not yet implemented');
+function testFitErrModResid_1dPolyMultiMeasGrp(testCase)
+    seed=42;
+    rng(seed)
+
+    TOLWID = 0.3;
+    Ndraw = 100;
+    Ndat = 30;
+    measGrpInd = ones(Ndat,1);
+    rndInd = find(rand(Ndat,1)<0.5);
+    measGrpInd(rndInd) = 2;
+
+    measGrpID = cellstr(num2str(measGrpInd));
+
+    %fitErrModResidMultiGrp
+    %NOTE: errorbar MUST be small enough that linear approximation is
+    %reasonable
+    xerrMag = .01;
+    ptrueErrModList = [-0.4; +.2];
+    priorcovErrModList = [1^2; 0.8^2];
+
+    relDev = zeros(Ndraw,2);
+    pfitdrawErrModList = zeros(Ndraw,2);
+    for(i=1:Ndraw)
+        % Test errMod for polynomial
+        pmod = [0.2 1.5 0];
+        dpmod = polyder(pmod);
+
+        xmod = linspace(-3,3,Ndat)';
+        ymod = polyval(pmod,xmod);
+
+        xerr = xerrMag*ones([Ndat 1]);
+        xdev = zeros([Ndat 1]);
+        xdev(measGrpInd==1) = exp(ptrueErrModList(1))*xerrMag.*randn([sum(measGrpInd==1) 1]);
+        xdev(measGrpInd==2) = exp(ptrueErrModList(2))*xerrMag.*randn([sum(measGrpInd==2) 1]);
+
+        xobs = xmod + xdev;
+
+        %plot(xmod,ymod,'ro',xobs,ymod,'kx')
+        yresid = ymod - polyval(pmod,xobs);
+        dydxobs = polyval(dpmod,xobs);
+
+        pinitErrModList = [0;0];
+        priorErrModList = [0;0];
+        opt = [];
+        linTransM = [];
+
+        [pfitErrModList nLogPFunList] = fitErrModResidMultiGrp(measGrpID,...
+            pinitErrModList,priorErrModList,priorcovErrModList,linTransM,...
+            yresid,dydxobs,xerr,opt);
+
+        pfitdrawErrModList(i,:) = pfitErrModList(:)';
+        %[pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
+        %    priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,opt);
+
+        irelDev = zeros(1,2);
+        for(j=1:length(nLogPFunList))
+            [jpfitcovErrMod] = estParamCov(nLogPFunList{j},pfitErrModList(j,:),[],opt);
+            irelDev(j) = (pfitErrModList(j,:)-ptrueErrModList(j,:))./sqrt(diag(jpfitcovErrMod));
+        end
+
+        relDev(i,:) = irelDev;
+    end
+
+    %hist(relDev(:,1),10)
+    %hist(relDev(:,2),10)
+    %mean(relDev)
+    %std(relDev)
+
+    verifyTrue(testCase,all(abs(mean(relDev))./std(relDev) < 1) ,...
+        ['Multi measGrpIDs: Distribution of normalized errMod params must have small systematic '...
+        'deviation from truth (ie. within 1 sigma of zero)']);
+    verifyTrue(testCase,all(abs(log(std(relDev))) < TOLWID) ,...
+        ['Multi measGrpIDs: Distribution of normalized errMod params must have width close to '...
+        'truth (ie. within TOLWID of 1)']);
 end
 
 function testFitErrModResid_2dPolyFunScl(testCase)
@@ -396,11 +466,8 @@ function testFitErrModResid_2dPolyFunScl(testCase)
 
         yM = reshape(ymod,size(x1M));
 
-        measGrpID = cellstr(num2str(ones(size(yresid))));
-
-
         [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
-            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,measGrpID,opt);
+            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,opt);
 
         nLogPFunScl=@(scl)(nLogPFun(scl*[1 1]));
         pfitErrModScl = fminunc(nLogPFunScl,0,optimset('Display','off','LargeScale','off'));
@@ -474,11 +541,8 @@ function testFitErrModResid_2dPolyLinTransEquiv(testCase)
 
     yM = reshape(ymod,size(x1M));
 
-    measGrpID = cellstr(num2str(ones(size(yresid))));
-
-
     [tr nLogPFun] = fitErrModResid(pinitErrMod,...
-        priorErrMod,priorcovErrMod,[],yresid,dydxobs,xerr,measGrpID,opt);
+        priorErrMod,priorcovErrMod,[],yresid,dydxobs,xerr,opt);
 
     nLogPFunScl=@(scl)(nLogPFun(scl*[1 1]));
 
@@ -486,7 +550,7 @@ function testFitErrModResid_2dPolyLinTransEquiv(testCase)
     linTransM = [1 0.5 0; 1 -0.5 0];
     priorcovErrModT = diag([1e3^2 1e-3^2]);
     [tr nLogPFunT] = fitErrModResid(pinitErrMod,...
-        priorErrMod,priorcovErrModT,linTransM,yresid,dydxobs,xerr,measGrpID,opt);
+        priorErrMod,priorcovErrModT,linTransM,yresid,dydxobs,xerr,opt);
 
     sclMag = linspace(-2,0,30);
     nLogPScl  = zeros(size(sclMag));
@@ -562,13 +626,10 @@ function testFitErrModResid_2dPolyLinTransFitScl(testCase)
 
         yM = reshape(ymod,size(x1M));
 
-        measGrpID = cellstr(num2str(ones(size(yresid))));
-
         opt = [];
 
         [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
-            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,...
-            measGrpID,opt);
+            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,opt);
 
         %sclMag = linspace(-.6,.6,30);
         %nLogPScl  = zeros(size(sclMag));
@@ -593,6 +654,124 @@ function testFitErrModResid_2dPolyLinTransFitScl(testCase)
     verifyTrue(testCase,abs(log(std(relDev(:,1)))) < TOLWID ,...
         ['Distribution of normalized errMod param for avg magnitude must '...
         'have width close to truth (ie. within TOLWID of 1)']);
+end
+function testFitErrModResid_2dPolyLinTransFitSclMultiMeasGrp(testCase)
+    seed=2*42;
+    rng(seed);
+
+
+    TOLWID = 0.3;
+    Ndraw = 100;
+
+    x1errMag = 0.003;
+    x2errMag = 0.001;
+
+    linTransM = [1 0.5 0; 1 -0.5 0];
+    ptrueErrModList = [-.2 +0; -.3 0];
+
+    pinitErrModList = [0 0; 0 0];
+    priorErrModList = [0 0; 0 0];
+    priorcovErrMod = diag([3^2 .001^2]);
+    priorcovErrModList(1,:,:) = priorcovErrMod;
+    priorcovErrModList(2,:,:) = priorcovErrMod;
+    %priorcovErrMod = diag([3^2 3^2]);
+
+
+    relDev = zeros(Ndraw,2);
+    absDev = zeros(Ndraw,2);
+    fitList = zeros(Ndraw,2);
+
+    % Test errMod for polynomial
+    %             1      2     3   4   5   6
+    %           x1^2    x2^2 x1*x2 x1  x2  1
+    pmod     = [0.2     -.3    0  -1.5 -3 0];
+    %dydx1 = 0*x1^2 + 0*x2^2 + 0*x1*x2 + 2*pmod(1)*x1 + x2*pmod(3) + pmod(4)
+    %dydx2 = 0*x1^2 + 0*x2^2 + 0*x1*x2 + x1*pmod(3)   + 2*pmod(2)*x2 +  pmod(5)
+    dpmoddx1 = [0 0 0 2*pmod(1)   pmod(3) pmod(4)];
+    dpmoddx2 = [0 0 0   pmod(3) 2*pmod(2) pmod(5)];
+    
+    x1vec = linspace(-3  ,3  ,10);
+    x2vec = linspace(-2.5,3.5,10);
+    [x1M,x2M] = ndgrid(x1vec,x2vec);
+    x12 = [x1M(:) x2M(:)];
+
+    designM = [x12(:,1).^2 x12(:,2).^2 x12(:,1).*x12(:,2) ...
+        x12(:,1) x12(:,2) ones(size(x12,1),1)];
+    ymod    = designM*pmod';
+
+    Ndat = size(x12,1);
+
+    measGrpInd = ones(Ndat,1);
+    rndInd = find(rand(Ndat,1)<0.5);
+    measGrpInd(rndInd) = 2;
+
+    measGrpID = cellstr(num2str(measGrpInd));
+
+    xerr = ones(Ndat,1)*[x1errMag x2errMag];
+
+    xerrFac1 = exp(linTransM*[ptrueErrModList(1,:) 1]')';
+    xerrFac2 = exp(linTransM*[ptrueErrModList(2,:) 1]')';
+
+    xdev = zeros(size(xerr));
+
+    pfitdrawErrModList = zeros(Ndraw,2,2);
+    relDev = zeros(Ndraw,2,2);
+    NGrp1 = sum(measGrpInd==1);
+    NGrp2 = sum(measGrpInd==2);
+    for(i=1:Ndraw)
+        xdev(measGrpInd==1,:) = xerr(measGrpInd==1,:).*...
+            randn([sum(measGrpInd==1) 2]).*repmat(xerrFac1,NGrp1,1);
+        xdev(measGrpInd==2,:) = xerr(measGrpInd==2,:).*...
+            randn([sum(measGrpInd==2) 2]).*repmat(xerrFac2,NGrp2,1);
+
+        stdest1(i,:) = log(std(xdev(measGrpInd==1,:))./[x1errMag x2errMag]);
+        stdest2(i,:) = log(std(xdev(measGrpInd==2,:))./[x1errMag x2errMag]);
+
+        stdest(i,1) = log(std(xdev(measGrpInd==1,1))./[x1errMag]);
+        stdest(i,2) = log(std(xdev(measGrpInd==2,1))./[x1errMag]);
+
+        xobs = x12 + xdev;
+
+        designObsM = [xobs(:,1).^2 xobs(:,2).^2 xobs(:,1).*xobs(:,2) ...
+            xobs(:,1) xobs(:,2) ones(size(xobs,1),1)];
+
+
+        yresid  = ymod-designObsM*pmod';
+        dydx1obs= designObsM*dpmoddx1';
+        dydx2obs= designObsM*dpmoddx2';
+        dydxobs = [dydx1obs(:) dydx2obs(:)];
+
+        yM = reshape(ymod,size(x1M));
+
+        opt = [];
+
+
+        [pfitErrModList nLogPFunList] = fitErrModResidMultiGrp(measGrpID,...
+            pinitErrModList,priorErrModList,priorcovErrModList,linTransM,...
+            yresid,dydxobs,xerr,opt);
+
+        pfitdrawErrModList(i,:,:) = pfitErrModList;
+        %[pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
+        %    priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,opt);
+
+        irelDev = zeros(2,2);
+        for(j=1:length(nLogPFunList))
+            [jpfitcovErrMod] = estParamCov(nLogPFunList{j},pfitErrModList(j,:),[],opt);
+            irelDev(j,:) = (pfitErrModList(j,:)-ptrueErrModList(j,:))./sqrt(diag(jpfitcovErrMod))';
+        end
+        relDev(i,:,:) = irelDev;
+
+        %absDev(i,:) = iabsDev;
+        %relDev(i,:) = irelDev;
+        %fitList(i,:) = pfitErrMod;
+    end
+
+    verifyTrue(testCase,all(abs(mean(relDev(:,:,1)))./std(relDev(:,:,1)) < 1) ,...
+        ['Multi measGrpIDs: Distribution of normalized errMod params must have small systematic '...
+        'deviation from truth (ie. within 1 sigma of zero)']);
+    verifyTrue(testCase,all(abs(log(std(relDev(:,:,1)))) < TOLWID) ,...
+        ['Multi measGrpIDs: Distribution of normalized errMod params must have width close to '...
+        'truth (ie. within TOLWID of 1)']);
 end
 function testFitErrModResid_2dPolyLinTransFit_NOT(testCase)
     seed=2*42;
@@ -657,13 +836,10 @@ function testFitErrModResid_2dPolyLinTransFit_NOT(testCase)
 
         yM = reshape(ymod,size(x1M));
 
-        measGrpID = cellstr(num2str(ones(size(yresid))));
-
         opt = [];
 
         [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
-            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,...
-            measGrpID,opt);
+            priorErrMod,priorcovErrMod,linTransM,yresid,dydxobs,xerr,opt);
 
         %x1Sv = linspace(-.5,.5,21);
         %x2Sv = linspace(-.1,.1,23);

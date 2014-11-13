@@ -1,6 +1,6 @@
 % fitErrModResid - fit error bar adjustment params given current model residuals
 function [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
-        priorErrMod,priorcovErrMod,linTransM, yresid,dydxmod,xerr,measGrpID,opt)
+        priorErrMod,priorcovErrMod,linTransM, yresid,dydxmod,xerr,opt)
     % May need to add eos fitting specific options
     optDefault = getEstParamDefaultOpt();
     opt = setDefaultOpt(opt,optDefault);
@@ -9,17 +9,8 @@ function [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
     if(isempty(linTransM))
         linTransM = [eye(numel(priorErrMod)) zeros(numel(priorErrMod),1)];
     end
-    % If unspecified, measGrpID = '1' for all datapoints
-    if(isempty(measGrpID))
-        measGrpID = '1';
-    end
-    % If only one group specified, measGrpID is the same for all datapoints
-    if(isstr(measGrpID))
-        Ndat = length(yresid);
-        measGrpID = cellstr(repmat(measGrpID,Ndat,1));
-    end
 
-    checkInput(pinitErrMod,priorErrMod,priorcovErrMod,linTransM,yresid,dydxmod,xerr,measGrpID);
+    checkInput(pinitErrMod,priorErrMod,priorcovErrMod,linTransM,yresid,dydxmod,xerr);
 
     pinitErrMod = pinitErrMod(:)';
     Ndat = length(yresid);
@@ -44,17 +35,15 @@ function [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
 end
 
 function checkInput(pinitErrMod,priorErrMod,priorcovErrMod,linTransM,...
-        yresid,dydxmod,xerr,measGrpID)
+        yresid,dydxmod,xerr)
     dimx = size(dydxmod,2);
-    NpErrMod = length(pinitErrMod);
     Ndat = size(yresid,1);
-    uniqID = unique(measGrpID);
+    NpErrMod = length(pinitErrMod);
 
-
-    assert(length(priorErrMod)==NpErrMod,...
+    assert(all(length(priorErrMod)==length(pinitErrMod)),...
         'Number of error mod params must be equal in prior and init');
-    assert(all(NpErrMod*[1 1]==size(priorcovErrMod)),...
-        'priorcov matrix must be square with dimensions of param num');
+    assert(all(size(priorcovErrMod)==NpErrMod*[1 1]),...
+        'priorcov matrix must provide square with dimensions of param num');
 
     assert(size(yresid,2)==1,'yresid must be vertical array')
 
@@ -67,13 +56,4 @@ function checkInput(pinitErrMod,priorErrMod,priorcovErrMod,linTransM,...
         'linTransM must have one row per x dimension.');
     assert(size(linTransM,2)==NpErrMod+1,['linTransM must have one col per '...
         'errMod parameter plus one extra for offsets.']);
-
-    assert(iscellstr(measGrpID),...
-        'measGrpID must be a cell array of strings identifying each group');
-    assert(length(measGrpID)==Ndat,'measGrpID must have one entry per datum.')
-
-    %assert(uniqID(1)==1,'measGrpID must start with 1.');
-    %assert(all(diff(uniqID)==1),'measGrpID must be an array of integers');
-    %assert(dimx*length(uniqID)==NpErrMod,...
-    %    'Number of error mod params must be equal to the num of measGrps*dimx');
 end
