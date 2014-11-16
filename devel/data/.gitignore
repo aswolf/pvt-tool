@@ -1,0 +1,3 @@
+# ignore markdown converted files
+*.html
+*.pdf

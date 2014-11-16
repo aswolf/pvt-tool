@@ -3,7 +3,7 @@
 
 % Use Tange 2012 pv dataset
 %PVTdata = getPVTdata_MgPvTange2012();
-PVTdata = getPVTdata_MgPvTange2012_compare();
+PVTdata = getPVTdata_MgPvTange2012('std');
 % load Tange Eos for MgPv and MgO
 eosMgPvT12 = getEos_MgPvTange2012();
 eosMgOMod = getEos_MgOTange2009();
@@ -50,7 +50,7 @@ eosMgPvPrior3.pEosCov(5,5) =   1^2;
 eosMgPvPrior3.pEosCov(6,6) =   1^2;
 
 % Test4: Restricted Thermal Fit No prior
-name4 = 'Tange2012:Refine Test3 (restricted thermal fit, No prior)';
+name4 = 'Tange2012:Refine Test4 (restricted thermal fit, No prior)';
 fixFlag4 = [1 1 1 1 0 0 1];
 pEosPrior      = eosMgPvT12.pEos;
 eosMgPvPrior4 = eosMgPvT12;
@@ -72,7 +72,6 @@ PVTeval2 = fitSampModPVTeval(PVTeval2,[],fixFlag2);
 PVTeval3 = fitSampModPVTeval(PVTeval3,[],fixFlag3);
 PVTeval4 = fitSampModPVTeval(PVTeval4,[],fixFlag4);
 
-PVTeval1.
 
 % Now test how reasonable the optimal estimation approximation is
 %  Do this for Test2, since it fits all params except V0
