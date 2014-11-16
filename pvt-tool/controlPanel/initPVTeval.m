@@ -16,16 +16,20 @@ function PVTeval = initPVTeval(name,PVTdataList,sampEosPrior,opt)
     PVTeval.Psamp        = [];
     PVTeval.PsampDerivs  = [];
 
-    PVTeval.errMod       = [];
-    PVTeval.errModCov    = [];
+    PVTeval.errModList   = [];
+    PVTeval.errModPriorList   = [];
+    PVTeval.errModCovPriorList= [];
+    PVTeval.errModCovList= [];
 
     PVTeval.opt          = opt;
 
-    [errMod, errModCov] = initErrMod(PVTdataList);
-    PVTeval.errMod    = errMod;
-    PVTeval.errModCov = errModCov;
+    [errModList, errModCovList] = initErrModList(PVTdataList);
+    PVTeval.errModList= errModList;
+    PVTeval.errModPriorList = errModList;
+    PVTeval.errModCovPriorList = errModCovList;
+    PVTeval.errModCovList = NaN*errModCovList;
 end
-function [errMod,errModCov] = initErrMod(PVTdataList)
+function [errModList,errModCovList] = initErrModList(PVTdataList)
     assert(numel(PVTdataList)==1,'Multiple datasets not yet implimented');
     PVTdata = PVTdataList(1);
 
@@ -41,13 +45,11 @@ function [errMod,errModCov] = initErrMod(PVTdataList)
     end
 
     % Set prior values for error model
-    errMod = zeros(NMeasGrp,2);
-    errModCredWid = [optPVTdat.errModVmarkPrior optPVTdat.errModVmarkPrior optPVTdat.errModVmarkPrior];
-    errModCov = diag(reshape(repmat(errModCredWid.^2,NMeasGrp,1),1,[]));
+    errModList = zeros(NMeasGrp,2);
+    errModCredWid = [optPVTdat.errModVmarkPrior optPVTdat.errModTPrior];
+    errModCovGrp = diag(errModCredWid.^2);
+    errModCovList = zeros(NMeasGrp,size(errModCovGrp,1),size(errModCovGrp,2));
+    for(i=1:NMeasGrp)
+        errModCovList(i,:,:) = errModCovGrp;
+    end
 end
-%function [errMod, errModCov] = initErrMod(PVTdataList)
-%    Ndat = length(PVTdataList);
-%    errMod = zeros(1,2*Ndat);
-%
-%    errModCov = diag(Inf*ones(size(errMod)));
-%end

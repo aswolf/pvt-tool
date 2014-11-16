@@ -25,6 +25,7 @@ function PVTdata = initPVTdata(name,opt)
 
     PVTdata.errMode  = '';
     PVTdata.PErrTot  = [];
+    PVTdata.PErrTerms  = [];
 
     PVTdata.PmarkDerivs = [];    
 end

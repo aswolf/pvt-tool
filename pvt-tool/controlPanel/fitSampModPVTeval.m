@@ -17,8 +17,9 @@ function PVTeval = fitSampModPVTeval(PVTeval,eosInitMod,fixFlag)
     T = PVTdata.T;
 
     % Propagate errors to total errors in pressure
+    errModList = PVTeval.errModList;
     [Psamp,PsampDerivs] = evalPressEos([],eosInitMod,V,T);
-    PVTdata = updatePVTdata(PVTdata,PsampDerivs);
+    PVTdata = updatePVTdata(PVTdata,PsampDerivs,errModList);
     PerrTot = PVTdata.PErrTot;
 
     T0                 = eosPriorMod.T0                 ;
@@ -33,10 +34,7 @@ function PVTeval = fitSampModPVTeval(PVTeval,eosInitMod,fixFlag)
     priorcovEos = eosPriorMod.pEosCov;
     pinitcovEos = eosPriorMod.pEosCov;
 
-
     opt = PVTeval.opt;
-
-
 
     [pfitEos pfitcovEos nLogPFun PressTotFun opt] = fitHotCompressData(pinitEos,fixFlag,...
         T0,NpCold,priorEos,priorcovEos,coldEosFun,hotEosFun,hotExtraInputs,...
@@ -56,7 +54,7 @@ function PVTeval = fitSampModPVTeval(PVTeval,eosInitMod,fixFlag)
     PsampDerivs = [dPsampdV,dPsampdT];
 
     % Propagate errors to total errors in pressure
-    PVTdata = updatePVTdata(PVTdata,PsampDerivs);
+    PVTdata = updatePVTdata(PVTdata,PsampDerivs,errModList);
 
     %Update list element
     PVTdataList(1) = PVTdata;

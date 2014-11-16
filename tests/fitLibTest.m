@@ -555,12 +555,12 @@ function testFitErrModPVT_synthMultiMeasGrpSoftPmark(testCase)
     end
     PErrTermMag(1,:) = median(squeeze(PErrTermMagList(:,1,:)));
     PErrTermMag(2,:) = median(squeeze(PErrTermMagList(:,2,:)));
-    %PErrTermMag
-    %ptrueErrMod
-    %hist(fitdraw(:,1,1),8)
-    %hist(fitdraw(:,2,1),8)
-    %hist(fitdraw(:,1,2),8)
-    %hist(fitdraw(:,2,2),8)
+    PErrTermMag
+    ptrueErrMod
+    hist(fitdraw(:,1,1),8)
+    hist(fitdraw(:,2,1),8)
+    hist(fitdraw(:,1,2),8)
+    hist(fitdraw(:,2,2),8)
 
     %hist(relDev(:,:,1),8)
     %hist(relDev(:,:,2),8)

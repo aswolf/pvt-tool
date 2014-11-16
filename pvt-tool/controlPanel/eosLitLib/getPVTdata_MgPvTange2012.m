@@ -1,4 +1,11 @@
-function PVTdata = getPVTdata_MgPvTange2012()
+function PVTdata = getPVTdata_MgPvTange2012(errMode)
+
+    errModeList ={'mark','std','tot'}; 
+    if(~exist('errMode'))
+        errMode = 'mark';
+    end
+    assert( any(strcmp(errModeList,errMode)), ...
+        ['errMode must be from recognized options: ' strjoin(errModeList)])
     %   1   2,     3      4, 5           6, 7      8,     9 
     %   grp P-VIN, err    V, err         T, err    V-MgO, err  
     PVT = [ ...
@@ -54,7 +61,13 @@ function PVTdata = getPVTdata_MgPvTange2012()
     TErr = PVT(:,7);
     Vmark    = PVT(:,8);
     VmarkErr = PVT(:,9);
-    measGrpID = cellstr(num2str(PVT(:,1)));
+    measRunInd = PVT(:,1);
+
+    measGrpID = cell([length(measRunInd),1]);
+    measGrpID(measRunInd==1) = {'1'};
+    measGrpID(measRunInd==1 & T < 310) = {'1-amb'};
+    measGrpID(measRunInd==2) = {'2'};
+    measGrpID(measRunInd==2 & T < 310) = {'2-amb'};
 
     % Tange 2012 uses MgO press scl of Tange 2009
     name = 'MgPvData-Tange2012';
@@ -64,9 +77,17 @@ function PVTdata = getPVTdata_MgPvTange2012()
 
     PVTdata = initPVTdata(name,opt);
 
-    PVTdata = setPVTdataMark(PVTdata,markLbl,eosMod_MgO,...
-        Vmark,V,T,VmarkErr,VErr,TErr,measGrpID);
-    %PVTdata = initPVTdata(name,P,V,T,PErr,VErr,TErr,measGrpID,...
-    %    markLbl,eosMod_MgO,Vmark,VmarkErr,opt);
+    switch errMode
+        case 'mark'
+            PVTdata = setPVTdataMark(PVTdata,markLbl,eosMod_MgO,...
+                Vmark,V,T,VmarkErr,VErr,TErr,measGrpID);
+        case 'std'
+            PVTdata = setPVTdataStd(PVTdata,P,V,T,PErr,VErr,TErr,measGrpID);
+        case 'tot'
+            disp('NOTE: this option is just for proof of concept! Do not use')
+            PerrTot = sqrt(PErr.^2 + 1);
+            PVTdata = setPVTdataTot(PVTdata,P,V,T,PErrTot,measGrpID);
+    end
+
 end
 
