@@ -1,11 +1,48 @@
 
-% Use Tange 2012 pv dataset for MgPv
-MgPvPVTdata = getPVTdata_MgPvTange2012('mark');
-FePvPVTdata = getPVTdata_MgFePvWolf2014();
-% load Tange Eos for MgPv and MgO for initial guess and marker EOS
 eosMgPvT12 = getEos_MgPvTange2012();
 eosMgOMod = getEos_MgOTange2009();
 eosNeMod = getEos_NeDewaele2008();
+
+dataDir = '~/Documents/code/MATLAB/pvt-tool/devel/data';
+
+loadScriptNmK09 = fullfile(dataDir,'loadPVT_Katsura2009.m');
+markEos = eosMgOMod;
+MgPvPVTdataK09 = loadPVTdata(loadScriptNmK09,markEos);
+
+loadScriptNmT12 = fullfile(dataDir,'loadPVT_Tange2012.m');
+markEos = eosMgOMod;
+MgPvPVTdataT12 = loadPVTdata(loadScriptNmT12,markEos);
+
+loadScriptNmW14 = fullfile(dataDir,'loadPVT_Wolf2014.m');
+markEos = eosNeMod;
+MgFePvPVTdataW14 = loadPVTdata(loadScriptNmW14,markEos);
+
+
+
+filename = fullfile(dataDir,'fit_Wolf2014_lsq.in');
+keywords = {'fileName','name','measGrpIDLbl','errMode','markLbl'};
+file_struct=parse_file(filename,keywords)
+
+fid = fopen(loadScriptNmW14,'r')
+C = textscan(fid, '%s','Delimiter','');
+fclose(fid)
+C = C{:};
+C = cellfun(@strtrim,C,'UniformOutput',false);
+
+
+% NOTE we need Pt EOS
+%loadScriptNmF98 = fullfile(dataDir,'loadPVT_Fiquet1998.m');
+%markEos = eosPtMod;
+%MgPvPVTdataF98 = loadPVTdata(loadScriptNmF98,markEos);
+
+%loadScriptNmL08 = fullfile(dataDir,'loadPVT_Lundin2008_00.m');
+%markEos = [];
+%MgPvPVTdataL08 = loadPVTdata(loadScriptNmL08,markEos);
+
+%MgPvPVTdata = getPVTdata_MgPvTange2012('mark');
+% FePvPVTdata = getPVTdata_MgFePvWolf2014();
+% MgPvPVTdataF98 = getPVTdata_MgPvFiquet1998();
+% load Tange Eos for MgPv and MgO for initial guess and marker EOS
 
 % Perform multiple tests with different priors
 % Fit Wolf Data: Prior all Tange values
@@ -15,18 +52,19 @@ pEosPrior     = eosMgPvT12.pEos;
 pEosPrior(1) = [163.2];
 pEosPrior(4) = 1000;
 pEosPrior(5:6) = [1 1];
-eosFePvPrior1W14 = eosMgPvT12;
-eosFePvPrior1W14.pEos = pEosPrior;
-eosFePvPrior1W14.pEosCov = zeros(7);
-eosFePvPrior1W14.pEosCov(1,1) = 0.2^2;
-eosFePvPrior1W14.pEosCov(2,2) = Inf;
-eosFePvPrior1W14.pEosCov(3,3) = Inf;
-eosFePvPrior1W14.pEosCov(4,4) = 0^2;
-eosFePvPrior1W14.pEosCov(5,5) =   1^2;
-eosFePvPrior1W14.pEosCov(6,6) =   1^2;
+eosMgFePvPrior1W14 = eosMgPvT12;
+eosMgFePvPrior1W14.pEos = pEosPrior;
+eosMgFePvPrior1W14.pEosCov = zeros(7);
+eosMgFePvPrior1W14.pEosCov(1,1) = 0.2^2;
+eosMgFePvPrior1W14.pEosCov(2,2) = Inf;
+eosMgFePvPrior1W14.pEosCov(3,3) = Inf;
+eosMgFePvPrior1W14.pEosCov(4,4) = 0^2;
+eosMgFePvPrior1W14.pEosCov(5,5) =   1^2;
+eosMgFePvPrior1W14.pEosCov(6,6) =   1^2;
 
 % Initialize and perform fit using least squares approach
-PVTeval1W14 = initPVTeval(name1W14,FePvPVTdata,eosFePvPrior1W14,opt);
+opt = [];
+PVTeval1W14 = initPVTeval(name1W14,MgFePvPVTdataW14,eosMgFePvPrior1W14,opt);
 PVTeval1W14 = fitSampModPVTeval(PVTeval1W14,[],fixFlag1W14);
 % Review residuals to check if error model is needed
 hist((PVTeval1W14.Psamp-PVTeval1W14.PVTdataList.Pmark)./PVTeval1W14.PVTdataList.PErrTot,15)
@@ -45,6 +83,56 @@ eosModLbl = {'fit','prior'};
 %[tblOutput,colHeader,markdownTblSep] = writeEosTbl(eosModList, eosModLbl,fileNm,'paren');
 
 
+% Plot results
+Presid = PVTeval1W14.Psamp - PVTeval1W14.PVTdataList.Pmark;
+[Pred] = evalPressEos([],PVTeval1W14.sampEosFit,MgFePvPVTdataW14.V,300);
+Vbnds = [min(MgFePvPVTdataW14.V),max(MgFePvPVTdataW14.V)];
+Vrng = diff(Vbnds);
+%Vbnds = [Vbnds(1)-.1*Vrng, Vbnds(2)+.1*Vrng];
+Vbnds = [Vbnds(1)-.1*Vrng, PVTeval1W14.sampEosFit.pEos(1)];
+Vmod = linspace(Vbnds(1),Vbnds(2),100)';
+[PredMod] = evalPressEos([],PVTeval1W14.sampEosFit,Vmod,300);
+indHot = find(MgFePvPVTdataW14.T>310);
+
+% Plot Reduced Isotherm
+clf;
+plot(PredMod,Vmod,'b-');
+hold on;
+caxis([300 2500]);
+hh = ploterrcol(Pred-Presid, MgFePvPVTdataW14.V,...
+    PVTeval1W14.PVTdataList.PErrTot, [],MgFePvPVTdataW14.T, 'o','hhx',0);
+set(hh,'LineWidth',2,'MarkerSize',5)
+hold off;
+xlim([30 130])
+colorbar;
+xlabel('Pressure [GPa]');
+ylabel('Volume [A^3]');
+title('13%Fe MgPv - Reduced 300 K Isotherm')
+
+
+% Plot hist
+x = linspace(-3,3,100)';
+[nhist, xhist] = hist(Presid./PVTeval1W14.PVTdataList.PErrTot,20);
+hist(Presid./PVTeval1W14.PVTdataList.PErrTot,20);
+hold on;
+plot(x, length(Presid)*(xhist(2)-xhist(1))/sqrt(2*pi)*exp(-0.5*x.^2),'r-')
+hold off;
+xlabel('Relative Residual')
+title('13%Fe MgPv')
+
+%scatter(MgFePvPVTdataW14.Pmark, MgFePvPVTdataW14.V, 50, MgFePvPVTdataW14.T, 'o', 'filled')
+
+%clf;
+%plot(PredMod,Vmod,'b-');
+%hold on;
+%scatter(MgFePvPVTdataW14.Pmark, MgFePvPVTdataW14.V, 50, MgFePvPVTdataW14.T, 'x')
+%scatter(flipud(Pred-Presid), flipud(MgFePvPVTdataW14.V), 50, flipud(MgFePvPVTdataW14.T), 'o','filled')
+%hold off;
+%xlim([0 140])
+
+
+
+
 % Perform multiple tests with different priors
 % Fit Wolf Data: Prior all Tange values
 name1W14R = 'MgFePv: Refit all params with good priors (Wolf2014 data)';
@@ -53,21 +141,21 @@ pEosPrior     = eosMgPvT12.pEos;
 pEosPrior(1) = [163.2];
 pEosPrior(4) = 1000;
 pEosPrior(5:6) = [1 1];
-eosFePvPrior1W14R = eosMgPvT12;
-eosFePvPrior1W14R.pEos = pEosPrior;
-eosFePvPrior1W14R.pEosCov = zeros(7);
-eosFePvPrior1W14R.pEosCov(1,1) = 0.2^2;
-eosFePvPrior1W14R.pEosCov(2,2) = Inf;
-eosFePvPrior1W14R.pEosCov(3,3) = Inf;
-eosFePvPrior1W14R.pEosCov(4,4) = 0^2;
-eosFePvPrior1W14R.pEosCov(5,5) =   1^2;
-eosFePvPrior1W14R.pEosCov(6,6) =   1^2;
+eosMgFePvPrior1W14R = eosMgPvT12;
+eosMgFePvPrior1W14R.pEos = pEosPrior;
+eosMgFePvPrior1W14R.pEosCov = zeros(7);
+eosMgFePvPrior1W14R.pEosCov(1,1) = 0.2^2;
+eosMgFePvPrior1W14R.pEosCov(2,2) = Inf;
+eosMgFePvPrior1W14R.pEosCov(3,3) = Inf;
+eosMgFePvPrior1W14R.pEosCov(4,4) = 0^2;
+eosMgFePvPrior1W14R.pEosCov(5,5) =   1^2;
+eosMgFePvPrior1W14R.pEosCov(6,6) =   1^2;
 
 
 % Initialize and perform fit
 optR.robustFit = true;
 % Initialize and perform fit using least squares approach
-PVTeval1W14R = initPVTeval(name1W14R,FePvPVTdata,eosFePvPrior1W14R,optR);
+PVTeval1W14R = initPVTeval(name1W14R,MgFePvPVTdataW14,eosMgFePvPrior1W14R,optR);
 PVTeval1W14R = fitSampModPVTeval(PVTeval1W14R,[],fixFlag1W14R);
 % Review residuals to check if error model is needed
 hist((PVTeval1W14R.Psamp-PVTeval1W14R.PVTdataList.Pmark)./PVTeval1W14R.PVTdataList.PErrTot,15)
@@ -93,21 +181,21 @@ pEosPrior     = eosMgPvT12.pEos;
 pEosPrior(1) = [163.2];
 pEosPrior(4) = 1000;
 pEosPrior(5:6) = [1 1];
-eosFePvPrior2W14R = eosMgPvT12;
-eosFePvPrior2W14R.pEos = pEosPrior;
-eosFePvPrior2W14R.pEosCov = zeros(7);
-eosFePvPrior2W14R.pEosCov(1,1) = 0.2^2;
-eosFePvPrior2W14R.pEosCov(2,2) = Inf;
-eosFePvPrior2W14R.pEosCov(3,3) = Inf;
-eosFePvPrior2W14R.pEosCov(4,4) = 100^2;
-eosFePvPrior2W14R.pEosCov(5,5) =   1^2;
-eosFePvPrior2W14R.pEosCov(6,6) =   1^2;
+eosMgFePvPrior2W14R = eosMgPvT12;
+eosMgFePvPrior2W14R.pEos = pEosPrior;
+eosMgFePvPrior2W14R.pEosCov = zeros(7);
+eosMgFePvPrior2W14R.pEosCov(1,1) = 0.2^2;
+eosMgFePvPrior2W14R.pEosCov(2,2) = Inf;
+eosMgFePvPrior2W14R.pEosCov(3,3) = Inf;
+eosMgFePvPrior2W14R.pEosCov(4,4) = 100^2;
+eosMgFePvPrior2W14R.pEosCov(5,5) =   1^2;
+eosMgFePvPrior2W14R.pEosCov(6,6) =   1^2;
 
 
 % Initialize and perform fit
 optR.robustFit = true;
 % Initialize and perform fit using least squares approach
-PVTeval2W14R = initPVTeval(name2W14R,FePvPVTdata,eosFePvPrior2W14R,optR);
+PVTeval2W14R = initPVTeval(name2W14R,MgFePvPVTdataW14,eosMgFePvPrior2W14R,optR);
 PVTeval2W14R = fitSampModPVTeval(PVTeval2W14R,[],fixFlag2W14R);
 % Review residuals to check if error model is needed
 hist((PVTeval2W14R.Psamp-PVTeval2W14R.PVTdataList.Pmark)./PVTeval2W14R.PVTdataList.PErrTot,15)
@@ -135,18 +223,18 @@ pEosPrior     = eosMgPvT12.pEos;
 pEosPrior(1) = [163.2];
 pEosPrior(4) = 1100;
 pEosPrior(5:6) = [1 1];
-eosFePvPrior2W14 = eosMgPvT12;
-eosFePvPrior2W14.pEos = pEosPrior;
-eosFePvPrior2W14.pEosCov = zeros(7);
-eosFePvPrior2W14.pEosCov(1,1) = 0.2^2;
-eosFePvPrior2W14.pEosCov(2,2) = Inf;
-eosFePvPrior2W14.pEosCov(3,3) = Inf;
-eosFePvPrior2W14.pEosCov(4,4) = 0^2;
-eosFePvPrior2W14.pEosCov(5,5) =   1^2;
-eosFePvPrior2W14.pEosCov(6,6) =   1^2;
+eosMgFePvPrior2W14 = eosMgPvT12;
+eosMgFePvPrior2W14.pEos = pEosPrior;
+eosMgFePvPrior2W14.pEosCov = zeros(7);
+eosMgFePvPrior2W14.pEosCov(1,1) = 0.2^2;
+eosMgFePvPrior2W14.pEosCov(2,2) = Inf;
+eosMgFePvPrior2W14.pEosCov(3,3) = Inf;
+eosMgFePvPrior2W14.pEosCov(4,4) = 0^2;
+eosMgFePvPrior2W14.pEosCov(5,5) =   1^2;
+eosMgFePvPrior2W14.pEosCov(6,6) =   1^2;
 
 % Initialize and perform fit using least squares approach
-PVTeval2W14 = initPVTeval(name2W14,FePvPVTdata,eosFePvPrior2W14,opt);
+PVTeval2W14 = initPVTeval(name2W14,MgFePvPVTdataW14,eosMgFePvPrior2W14,opt);
 PVTeval2W14 = fitSampModPVTeval(PVTeval2W14,[],fixFlag2W14);
 % Review residuals to check if error model is needed
 hist((PVTeval2W14.Psamp-PVTeval2W14.PVTdataList.Pmark)./PVTeval2W14.PVTdataList.PErrTot,15)
@@ -163,7 +251,6 @@ fileNm = '../data/Wolf2014Fit2.md';
 eosModList = [PVTeval2W14.sampEosFit,PVTeval2W14.sampEosPrior];
 eosModLbl = {'fit','prior'};
 [tblOutput,colHeader,markdownTblSep] = writeEosTbl(eosModList, eosModLbl,fileNm,'decimal');
-
 
 
 % Test1: Prior all Tange values
@@ -183,8 +270,64 @@ eosMgPvPrior1.pEosCov(4,4) = 200^2;
 eosMgPvPrior1.pEosCov(5,5) =   1^2;
 eosMgPvPrior1.pEosCov(6,6) =   1^2;
 % Initialize and perform fit
-PVTeval1T12 = initPVTeval(name1,MgPvPVTdata,eosMgPvPrior1,opt);
+PVTeval1T12 = initPVTeval(name1,MgPvPVTdataT12,eosMgPvPrior1,opt);
 PVTeval1T12 = fitSampModPVTeval(PVTeval1T12,[],fixFlag1);
+% Review residuals to check if error model is needed
+hist((PVTeval1T12.Psamp-PVTeval1T12.PVTdataList.Pmark)./PVTeval1T12.PVTdataList.PErrTot,15)
+std((PVTeval1T12.Psamp-PVTeval1T12.PVTdataList.Pmark)./PVTeval1T12.PVTdataList.PErrTot)
+PVTeval1T12 = fitErrModPVTeval(PVTeval1T12,[]);
+hist((PVTeval1T12.Psamp-PVTeval1T12.PVTdataList.Pmark)./PVTeval1T12.PVTdataList.PErrTot,15)
+std((PVTeval1T12.Psamp-PVTeval1T12.PVTdataList.Pmark)./PVTeval1T12.PVTdataList.PErrTot)
+% Refit with updated error model
+PVTeval1T12 = fitSampModPVTeval(PVTeval1T12,[],fixFlag1);
+fileNm = '../data/Tange2012ErrTot.md';
+[tblOutput,colHeader,markdownTblSep] = writePVTdataTbl(PVTeval1T12.PVTdataList,fileNm);
+fileNm = '../data/Tange2012Fit.md';
+eosModList = [PVTeval1T12.sampEosFit,PVTeval1T12.sampEosPrior];
+eosModLbl = {'fit','prior'};
+[tblOutput,colHeader,markdownTblSep] = writeEosTbl(eosModList, eosModLbl,fileNm,'decimal');
+%[tblOutput,colHeader,markdownTblSep] = writeEosTbl(eosModList, eosModLbl,fileNm,'paren');
+
+
+
+% Plot results
+Presid = PVTeval1T12.Psamp - PVTeval1T12.PVTdataList.Pmark;
+[Pred] = evalPressEos([],PVTeval1T12.sampEosFit,MgPvPVTdataT12.V,300);
+Vbnds = [min(MgPvPVTdataT12.V),max(MgPvPVTdataT12.V)];
+Vrng = diff(Vbnds);
+%Vbnds = [Vbnds(1)-.1*Vrng, Vbnds(2)+.1*Vrng];
+Vbnds = [Vbnds(1)-.1*Vrng, PVTeval1T12.sampEosFit.pEos(1)];
+Vmod = linspace(Vbnds(1),Vbnds(2),100)';
+[PredMod] = evalPressEos([],PVTeval1T12.sampEosFit,Vmod,300);
+indHot = find(MgPvPVTdataT12.T>310);
+
+% Plot Reduced Isotherm
+clf;
+plot(PredMod,Vmod,'b-');
+hold on;
+caxis([300 2500]);
+hh = ploterrcol(Pred-Presid, MgPvPVTdataT12.V,...
+    PVTeval1T12.PVTdataList.PErrTot, [],MgPvPVTdataT12.T, 'o','hhx',0);
+set(hh,'LineWidth',2,'MarkerSize',5)
+hold off;
+xlim([20 100])
+colorbar;
+xlabel('Pressure [GPa]');
+ylabel('Volume [A^3]');
+title('MgPv (Tange2012) - Reduced 300 K Isotherm')
+
+% Plot hist
+x = linspace(-3,3,100)';
+[nhist, xhist] = hist(Presid./PVTeval1T12.PVTdataList.PErrTot,20);
+hist(Presid./PVTeval1T12.PVTdataList.PErrTot,20);
+hold on;
+plot(x, length(Presid)*(xhist(2)-xhist(1))/sqrt(2*pi)*exp(-0.5*x.^2),'r-')
+hold off;
+xlabel('Relative Residual')
+title('MgPv (Tange2012)')
+
+
+% Initialize and perform fit
 
 %
 

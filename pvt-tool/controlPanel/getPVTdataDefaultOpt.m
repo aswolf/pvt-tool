@@ -1,4 +1,7 @@
 function optDefault = getPVTdataDefaultOpt();
+    optDefault.delim = '|';
+    optDefault.VScl     = NaN;
+    optDefault.VmarkScl = NaN;
     optDefault.calcPmark = true;
     optDefault.invVmark  = false;
     optDefault.pressFixed = false;

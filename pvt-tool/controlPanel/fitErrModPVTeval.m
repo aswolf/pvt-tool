@@ -1,6 +1,5 @@
 function PVTeval = fitErrModPVTeval(PVTeval,errModInitList)
 
-
     if(isempty(errModInitList))
         errModInitList = PVTeval.errModList;
     end

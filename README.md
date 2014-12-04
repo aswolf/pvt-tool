@@ -6,4 +6,7 @@
 * Robust/Normal fit on Wolf
 * Send the fitted results PVTdatasets from robust fits
 
+# NEED to fix bug in  fitErrModPVTeval.m:
+* dimension mismatch error does not allow single measgrp data
+
 
