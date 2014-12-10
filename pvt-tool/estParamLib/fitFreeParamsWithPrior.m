@@ -5,6 +5,11 @@ function [pfit nLogPFun] = fitFreeParamsWithPrior(pinit,fixFlag,...
     optDefault = getEstParamDefaultOpt();
     opt = setDefaultOpt(opt,optDefault);
 
+    % If prior unspecified, set to Inf in all parameters
+    if(isempty(priorcov))
+        priorcov = diag(Inf*ones(size(pinit)));
+    end
+
     % Set diagonal value of cov matrix to NaN to indicate fixed parameters
     indFixDiag = sub2ind(size(priorcov),find(fixFlag==1),find(fixFlag==1));
     priorcov(indFixDiag) = NaN;

@@ -1,4 +1,4 @@
-dataDir = '~/Documents/code/MATLAB/pvt-tool/devel/data';
+dataDir = '/Users/aswolf/Documents/code/MATLAB/pvt-tool/devel/data';
 
 % Fit MgPv (Tange2012) and MgFePv (Wolf2014) datasets
 lsqMgPv  =runPVTtool(fullfile(dataDir,'fit_Tange2012_lsq_fixdeb.in'));

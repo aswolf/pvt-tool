@@ -23,6 +23,11 @@ function [pfit pfitcov nLogPFun PressTotFun opt] = fitHotCompressData(pinitEos,f
     if(length(PerrTot)==1)
         PerrTot = PerrTot*ones(size(V));
     end
+    if(isfield(opt,'fitcov'))
+        fitcov = opt.fitcov;
+    else
+        fitcov = true;
+    end
 
     %fixFlagColdOnly = fixFlag;
     %fixFlagColdOnly(NpCold+1:end) = 1;
@@ -37,6 +42,12 @@ function [pfit pfitcov nLogPFun PressTotFun opt] = fitHotCompressData(pinitEos,f
     % Fit Cold subset of data
     [pfitCold pfitcovCold] = fitColdCompressData(pinitCold,fixFlagCold,...
         priorCold,priorcovCold,coldEosFun,P(indT0),V(indT0),PerrTot(indT0),opt);
+
+    % If do not get fitcov, fix cold parameters to their current values
+    if(~fitcov)
+        pfitcovCold = diag(NaN*ones(size(pfitCold)));
+        fixFlag(1:length(pfitCold)) = 1;
+    end
 
     %update prior with cold fit
     fixHotEosFlag = zeros(size(fixFlag));
@@ -60,31 +71,9 @@ function [pfit pfitcov nLogPFun PressTotFun opt] = fitHotCompressData(pinitEos,f
     [pfit nLogPFun] = fitFreeParamsWithPrior(pfit,fixFlag,...
         pfit,pfitcov,wtResidFun,opt);
 
-    [pfitcov] = estParamCov(nLogPFun,pfit,fixFlag,opt);
+    if(fitcov)
+        [pfitcov] = estParamCov(nLogPFun,pfit,fixFlag,opt);
+    else
+        pfitcov = [];
+    end
 end
-%
-%    pinitColdEos = pinitEos(1:NpCold);
-%    pinitHotEos  = pinitEos(NpCold+1:end);
-%
-%    priorColdEos = priorEos(1:NpCold);
-%    priorHotEos  = priorEos(NpCold+1:end);
-%
-%    priorerrEos = sqrt(diag(priorcovEos))';
-%    priorcorrEos = priorcovEos./(priorerrEos(:)*priorerrEos(:)');
-%    indInfVar = find(isinf(priorerrEos)|priorerrEos==0);
-%    priorcorrEos(indInfVar,indInfVar) = 0;
-%    priorcorrEos(sub2ind(size(priorcovEos),indInfVar,indInfVar)) = 1;
-%    priorcovColdEos = priorcorrEos(1:NpCold,1:NpCold)...
-%        .*(priorerrEos(1:NpCold)*priorerrEos(1:NpCold)');
-%
-%    pfiterrCold = sqrt(diag(pfitcovCold));
-%    pfitcorrCold = pfitcovCold./(pfiterrCold(:)*pfiterrCold(:)');
-%
-%    % Update initial point and prior according to cold fit
-%    pinitEos(1:NpCold)              = pfitCold;
-%    priorEos(1:NpCold)              = pfitCold;
-%    priorcorrEos(1:NpCold,1:NpCold) = pfitcorrCold;
-%    priorerrEos(1:NpCold)           = pfiterrCold;
-%
-%    priorcovEos = priorcorrEos.*(priorerrEos(:)*priorerrEos(:)');
-%

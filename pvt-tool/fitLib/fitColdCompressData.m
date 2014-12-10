@@ -14,6 +14,11 @@ function [pfit pfitcov nLogPFun] = fitColdCompressData(pInitEos,fixFlag,...
     if(length(PerrTot)==1)
         PerrTot = PerrTot*ones(size(V));
     end
+    if(isfield(opt,'fitcov'))
+        fitcov = opt.fitcov;
+    else
+        fitcov = true;
+    end
     
     %wtResidFun = @(pEosFree,pEosAll,fixFlag)( (P-...
     %    coldEosFun(V,getAllParams(pEosFree,pEosAll,fixFlag))) ...
@@ -28,5 +33,9 @@ function [pfit pfitcov nLogPFun] = fitColdCompressData(pInitEos,fixFlag,...
         pfitcov = diag(NaN*ones(size(fixFlag)));
         return
     end
-    [pfitcov] = estParamCov(nLogPFun,pfit,fixFlag,opt);
+    if(fitcov)
+        [pfitcov] = estParamCov(nLogPFun,pfit,fixFlag,opt);
+    else
+        pfitcov = [];
+    end
 end

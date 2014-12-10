@@ -14,6 +14,11 @@ function [tblOutput,colHeader,markdownTblSep] = writeEosTbl(eosModList,...
     for(i=1:length(eosModList))
         ipEos = eosModList(i).pEos;
         pEosCov = eosModList(i).pEosCov;
+        % if covar matrix is empty (undetermined) set values to Inf 
+        %    for Null output
+        if(isempty(pEosCov))
+            pEosCov = diag(Inf*ones(size(ipEos)));
+        end
         pEosCredWid = sqrt(diag(pEosCov));
         pEosM(:,i) = ipEos(:);
         pEosCredWidM(:,i) = pEosCredWid(:);
