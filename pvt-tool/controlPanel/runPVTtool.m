@@ -66,7 +66,7 @@ function PVTeval = thisLoadPVTeval(keys,PVTdata)
         'must define fixflag value for each parameter');
     robust_fit = str2num(getKeyVal('robust_fit',section,keys));
     robust_norm_param = str2num(getKeyVal('robust_norm_param',section,keys));
-    fitcov = str2num(getKeyVal('fitcov',section,keys));
+    %fitcov = str2num(getKeyVal('fitcov',section,keys));
 
     temp0 = str2num(getKeyVal('temp0',section,keys));
     natom = str2num(getKeyVal('natom',section,keys));
@@ -88,7 +88,7 @@ function PVTeval = thisLoadPVTeval(keys,PVTdata)
     opt = [];
     opt.robustFit =robust_fit;
     opt.robustNormParam = robust_norm_param;
-    opt.fitcov = fitcov;
+    %opt.fitcov = fitcov;
     PVTeval = initPVTeval(model_name,PVTdata,eosPrior,opt);
     PVTeval.fixFlag = model_fixflag;
 end
