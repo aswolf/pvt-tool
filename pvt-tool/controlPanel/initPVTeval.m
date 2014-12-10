@@ -3,6 +3,9 @@ function PVTeval = initPVTeval(name,PVTdataList,sampEosPrior,opt)
     assert(numel(PVTdataList)==1,...
         'multiple data sets in PVTdataList not yet implemented');
 
+    optDefault = getEstParamDefaultOpt();
+    opt = setDefaultOpt(opt,optDefault);
+
     PVTeval.name         = name;
     PVTeval.fixFlag      = [];
 

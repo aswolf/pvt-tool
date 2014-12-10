@@ -6,6 +6,9 @@ function PVTeval = fitSampModPVTeval(PVTeval,eosInitMod,fixFlag)
     if(isempty(eosInitMod))
         eosInitMod = eosPriorMod;
     end
+    if(isempty(fixFlag))
+        fixFlag = PVTeval.fixFlag;
+    end
 
     PVTdataList = PVTeval.PVTdataList;
     assert(numel(PVTdataList)==1,...

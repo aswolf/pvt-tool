@@ -46,6 +46,26 @@ function [tblOutput,colHeader,markdownTblSep] = writePVTdataTbl(PVTdata,fileNm)
                     T(i),TErr(i), V(i),VErr(i), Vmark(i), VmarkErr(i));
                 tblOutput(i,:) = istr;
             end
+        case 'tot'
+            P  = PVTdata.Pmark;
+            T  = PVTdata.T;
+            V  = PVTdata.V;
+
+            PErrTot = PVTdata.PErrTot;
+
+            strformat = ['%' num2str(IDmaxLen) 's ' delim ...
+                '%6.2f ' delim '%5.2f ' delim '%6.1f ' delim '%5.1f ' delim...
+                '%6.2f ' delim '%5.2f ' delim '%6.2f ' delim '%5.2f' delim];
+            colHeader = ['grpID ' delim 'T' delim 'P ' delim 'PTotErr ' delim ...
+                'V '];
+            markdownTblSep = [':---' delim '---:' delim '---:' delim ...
+                '---:' delim '---:'];
+            clear tblOutput;
+            for(i=1:length(V))
+                istr = sprintf(strformat,measGrpID{i},P(i),PErrTot(i),...
+                    T(i),TErr(i), V(i),VErr(i), Vmark(i), VmarkErr(i));
+                tblOutput(i,:) = istr;
+            end
 
     end
 

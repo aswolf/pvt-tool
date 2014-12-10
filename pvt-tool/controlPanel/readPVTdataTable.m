@@ -8,7 +8,8 @@ function PVTdata = readPVTdataTable(fileName,name,measGrpIDLbl,errMode,...
     errModeList ={'mark','std','tot'}; 
     assert( any(strcmp(errModeList,errMode)), ...
         ['errMode must be from recognized options: ' strjoin(errModeList)])
-    dataRead = importdata(fileName);
+    nheadlines = 3;
+    dataRead = importdata(fileName,'|',nheadlines);
     dataTbl = dataRead.data;
 
     % Column definition depends on errMode
@@ -40,6 +41,7 @@ function PVTdata = readPVTdataTable(fileName,name,measGrpIDLbl,errMode,...
             V          = dataTbl(:,5);
     end
 
+
     % Scale volumes if option selected
     if(~isnan(opt.VScl))
         V    = opt.VScl*V;
@@ -51,26 +53,52 @@ function PVTdata = readPVTdataTable(fileName,name,measGrpIDLbl,errMode,...
     end
 
     uniqMeasGrpInd = unique(measGrpInd);
-    assert(all(uniqMeasGrpInd > 0 & mod(uniqMeasGrpInd,1)==0),...
-        'measGrpInd must all be positive integers');
+    assert(all(uniqMeasGrpInd >= 0 & mod(uniqMeasGrpInd,1)==0),...
+        'measGrpInd must all be non-negative integers');
     assert(max(uniqMeasGrpInd) <= length(measGrpIDLbl),...
         'measGrpIDLbl must provide an ID label for every measGrpInd')
 
+    % mask out zero-values for meas grp Ind 
+    mask = measGrpInd==0;
+
     measGrpID = cell([length(V),1]);
     for(i=1:length(V))
-        measGrpID(i) = measGrpIDLbl(measGrpInd(i));
+        if(mask(i))
+            measGrpID(i) = {NaN};
+        else
+            measGrpID(i) = measGrpIDLbl(measGrpInd(i));
+        end
     end
 
     PVTdata = initPVTdata(name,opt);
 
     switch errMode
         case 'mark'
+            Vmark = Vmark(~mask);
+            V = V(~mask);
+            T = T(~mask);
+            VmarkErr = VmarkErr(~mask);
+            VErr = VErr(~mask);
+            TErr = TErr(~mask);
+            measGrpID = measGrpID(~mask);
             PVTdata = setPVTdataMark(PVTdata,markLbl,markEos,...
                 Vmark,V,T,VmarkErr,VErr,TErr,measGrpID);
         case 'std'
+            P = P(~mask);
+            V = V(~mask);
+            T = T(~mask);
+            PErr = PErr(~mask);
+            VErr = VErr(~mask);
+            TErr = TErr(~mask);
+            measGrpID = measGrpID(~mask);
             PVTdata = setPVTdataStd(PVTdata,P,V,T,PErr,VErr,TErr,measGrpID);
         case 'tot'
-            disp('NOTE: this option is just for proof of concept! Do not use')
+            P = P(~mask);
+            V = V(~mask);
+            T = T(~mask);
+            PErrTot = PErrTot(~mask);
+            measGrpID = measGrpID(~mask);
+            %disp('NOTE: this option is just for proof of concept! Do not use')
             PVTdata = setPVTdataTot(PVTdata,P,V,T,PErrTot,measGrpID);
     end
 

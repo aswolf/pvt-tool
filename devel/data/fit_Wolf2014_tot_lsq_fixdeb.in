@@ -1,0 +1,32 @@
+; Input Script for Wolf2014 data (tot-mode)
+
+[output]
+update_data_table_filename=MgFePv_PVTdata_Wolf2014_tot_update.md
+eos_table_filename=Wolf2014_tot_lsq_fixdeb.md
+matfilename=Wolf2014_tot_lsq_fixdeb.mat
+
+[data]
+dir=.
+filename=Wolf2014data_tot.md
+name=MgFePvData-Wolf2014
+grp_lbl=coldDAC LHDAC
+err_mode=tot
+mark_lbl=Ne
+mark_eos=NeDewaele2008
+exclude_grp=
+
+[model]
+name=MgFePv: Refit all params with good priors (Wolf2014 data)
+material=MgPv
+fixflag=0 0 0 1 0 0 1;
+prior_avg=163.2 250 4.0 1000 1.0 1.0 1;
+prior_err=0.2 Inf Inf 0 1.0 1.0 0;
+temp0=300
+natom=20
+cold_eos_fun=VinetEos
+hot_eos_fun=MieGrunDebyeHotEos
+debye_derivs_fun=debyePowerLaw
+robust_fit=false
+robust_norm_param=5
+fit_data=true
+fit_err_mod=false
