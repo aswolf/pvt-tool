@@ -1,25 +1,25 @@
-; Input Script for Wolf2014 data (vmark-mode)
+; Input Script for Tange2012 data (vmark-mode)
 
 [output]
-update_data_table_filename=MgFePv_PVTdata_Wolf2014_update.md
-eos_table_filename=Wolf2014_lsq_fixdeb.md
-matfilename=Wolf2014_lsq_fixdeb.mat
+update_data_table_filename=MgPv_PVTdata_Tange2012_update.md
+eos_table_filename=Tange2012_lsq_fixdeb.md
+matfilename=Tange2012_lsq_fixdeb.mat
 
 [data]
 dir=.
-filename=MgFePv_PVTdata_Wolf2014.md
-name=MgFePvData-Wolf2014
+filename=MgPv_PVTdata_Tange2012.md
+name=MgPvData-Tange2012
 grp_lbl=coldDAC LHDAC
 err_mode=mark
-mark_lbl=Ne
-mark_eos=NeDewaele2008
+mark_lbl=MgO
+mark_eos=MgOTange2009
 exclude_grp=
 
 [model]
 name=MgFePv: Refit all params with good priors (Wolf2014 data)
-material=MgFePv
+material=MgPv
 fixflag=0 0 0 1 0 0 1;
-prior_avg=163.2 250 4.0 1000 1.0 1.0 1;
+prior_avg=162.5 250 4.0 1000 1.0 1.0 1;
 prior_err=0.2 Inf Inf 0 1.0 1.0 0;
 temp0=300
 natom=20
