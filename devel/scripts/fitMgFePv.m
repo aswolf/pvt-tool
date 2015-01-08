@@ -4,7 +4,9 @@ figDir = '/Users/aswolf/Documents/code/MATLAB/pvt-tool/devel/figs';
 
 % Fit MgPv (Tange2012) and MgFePv (Wolf2014) datasets
 lsqMgPv  =runPVTtool(fullfile(dataDir,'fit_Tange2012_lsq_fixdeb.in'));
+lsqMgPvNothmgrp =runPVTtool(fullfile(dataDir,'fit_Tange2012_lsq_fixdeb_nothmgrp.in'));
 lsqMgFePv=runPVTtool(fullfile(dataDir,'fit_Wolf2014_lsq_fixdeb.in'));
+lsqMgFePv1=runPVTtool(fullfile(dataDir,'fit_test_grp1.in'));
 
 fig=1;
 figure(fig);

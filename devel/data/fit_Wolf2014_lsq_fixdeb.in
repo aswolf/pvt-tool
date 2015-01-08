@@ -6,7 +6,6 @@ eos_table_filename=Wolf2014_lsq_fixdeb.md
 matfilename=Wolf2014_lsq_fixdeb.mat
 
 [data]
-dir=.
 filename=MgFePv_PVTdata_Wolf2014.md
 name=MgFePvData-Wolf2014
 grp_lbl=coldDAC LHDAC

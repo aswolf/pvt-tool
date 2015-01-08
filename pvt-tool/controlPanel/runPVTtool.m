@@ -7,8 +7,9 @@ function PVTeval = runPVTtool(inputFileNm)
         disp(err.message);
     end
     % NOTE: should check that keys are unique
+    [data_dir,inputbase,inputext] = fileparts(inputFileNm);
 
-    [PVTdata, data_dir] = thisLoadPVTdata(keys);
+    [PVTdata] = thisLoadPVTdata(keys, data_dir);
     PVTeval = thisLoadPVTeval(keys,PVTdata);
 
     % Perform fit
@@ -92,12 +93,8 @@ function PVTeval = thisLoadPVTeval(keys,PVTdata)
     PVTeval = initPVTeval(model_name,PVTdata,eosPrior,opt);
     PVTeval.fixFlag = model_fixflag;
 end
-function [PVTdata, data_dir] = thisLoadPVTdata(keys)
+function [PVTdata] = thisLoadPVTdata(keys, data_dir)
     section = 'data';
-    data_dir = getKeyVal('dir',section,keys);
-    if(isempty(data_dir))
-        data_dir='.';
-    end
     data_filename = getKeyVal('filename',section,keys);
     assert(~isempty(data_filename),'data filename must be provided');
 
@@ -118,34 +115,6 @@ function [PVTdata, data_dir] = thisLoadPVTdata(keys)
     opt0 = [];
     PVTdata = readPVTdataTable(data_path,data_name,data_grp_lbl,...
         err_mode,mark_lbl,mark_eos,opt0);
-
-    % Exclude meas groups if necessary
-    %  Don't forget to 
-    %exclude_grp_str = getKeyVal('exclude_grp',section,keys);
-    %if(~isempty(exclude_grp_str))
-    %    exclude_grp= strsplit(exclude_grp_str,' ');
-    %    data_grp_lbl = strsplit(getKeyVal('grp_lbl',section,keys),' ');
-    %    grpMember = zeros(length(PVTdata.measGrpID),1);
-    %    indGood = [];
-    %    for(i=1:length(data_grp_lbl))
-    %        grpMember(strmatch(data_grp_lbl{i},PVTdata.measGrpID)) = i;
-    %        
-    %        if(isempty(strmatch(data_grp_lbl{i},exclude_grp)))
-    %            indGood = [indGood; strmatch(data_grp_lbl{i},PVTdata.measGrpID)];
-    %        end
-    %    end
-
-    %    PVTdata0 = PVTdata;
-    %    PVTdata.measGrpID = PVTdata0.measGrpID(indGood);
-    %    PVTdata.Pmark = PVTdata0.Pmark(indGood);
-    %    PVTdata.Vmark = PVTdata0.Vmark(indGood);
-    %    PVTdata.V = PVTdata0.V(indGood);
-    %    PVTdata.T = PVTdata0.T(indGood);
-    %    PVTdata.VmarkErr = PVTdata0.VmarkErr(indGood);
-    %    PVTdata.VErr = PVTdata0.VErr(indGood);
-    %    PVTdata.TErr = PVTdata0.TErr(indGood);
-    %    PVTdata.PmarkDerivs = PVTdata0.PmarkDerivs(indGood,:);
-    %end
 end
 function keyVal = getKeyVal(keyname,sectionname,keys)
     isSection = strcmp(sectionname,keys(:,1));

@@ -1,6 +1,7 @@
 % fitErrModResid - fit error bar adjustment params given current model residuals
 function [pfitErrMod nLogPFun] = fitErrModResid(pinitErrMod,...
         priorErrMod,priorcovErrMod,linTransM, yresid,dydxmod,xerr,opt)
+    priorcovErrMod = squeeze(priorcovErrMod);
     % May need to add eos fitting specific options
     optDefault = getEstParamDefaultOpt();
     opt = setDefaultOpt(opt,optDefault);
