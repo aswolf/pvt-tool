@@ -3,10 +3,15 @@ figDir = '/Users/aswolf/Documents/code/MATLAB/pvt-tool/devel/figs';
 
 
 % Fit MgPv (Tange2012) and MgFePv (Wolf2014) datasets
+% NOTE: data is saved in mat files
 lsqMgPv  =runPVTtool(fullfile(dataDir,'fit_Tange2012_lsq_fixdeb.in'));
-lsqMgPvNothmgrp =runPVTtool(fullfile(dataDir,'fit_Tange2012_lsq_fixdeb_nothmgrp.in'));
 lsqMgFePv=runPVTtool(fullfile(dataDir,'fit_Wolf2014_lsq_fixdeb.in'));
-lsqMgFePv1=runPVTtool(fullfile(dataDir,'fit_test_grp1.in'));
+
+% Also fit with fixed Tdeb low and high values
+%
+% lsqMgPvNothmgrp =runPVTtool(fullfile(dataDir,'fit_Tange2012_lsq_fixdeb_nothmgrp.in'));
+% lsqMgFePvnothmgrp=runPVTtool(fullfile(dataDir,'fit_test_grp1.in'));
+
 
 fig=1;
 figure(fig);
@@ -24,6 +29,99 @@ viewPVTFit(lsqMgPv,'reduced')
 exportfigmixedrender(fig,fullfile(figDir,'Tange12-reduced-fit.eps'))
 viewPVTFit(lsqMgPv,'hist')
 exportfigmixedrender(fig,fullfile(figDir,'Tange12-hist-resid.eps'))
+
+
+% Calculate therm Exp
+Pconst=0;
+Tfoot=200;
+Tstop=3000;
+dT=10;
+
+[TexpMg,thmExpMg,VexpMg,KexpMg,gamexpMg]=...
+    calcThmExp(Pconst,Tfoot,Tstop,dT,lsqMgPv.sampEosFit,[]);
+[TexpMgFe,thmExpMgFe,VexpMgFe,KexpMgFe,gamexpMgFe]=...
+    calcThmExp(Pconst,Tfoot,Tstop,dT,lsqMgFePv.sampEosFit,[]);
+
+[TexpMg,thmExpBndsMg,VExpBndsMg]=calcThmExpBnds(Pconst,Tfoot,Tstop,dT,...
+    lsqMgPv.sampEosFit);
+[TexpMgFe,thmExpBndsMgFe,VExpBndsMgFe]=calcThmExpBnds(Pconst,Tfoot,Tstop,dT,...
+    lsqMgFePv.sampEosFit);
+
+TCMB=2450;
+TstopCMB = 4500;
+PCMB = 135.8;
+[TexpMgCMB,thmExpMgCMB,VexpMgCMB,KexpMgCMB,gamexpMgCMB]=...
+    calcThmExp(PCMB,Tfoot,TstopCMB,dT,lsqMgPv.sampEosFit,[]);
+[TexpMgFeCMB,thmExpMgFeCMB,VexpMgFeCMB,KexpMgFeCMB,gamexpMgFeCMB]=...
+    calcThmExp(PCMB,Tfoot,TstopCMB,dT,lsqMgFePv.sampEosFit,[]);
+
+[TexpMgCMB,thmExpBndsMgCMB,VExpBndsMgCMB]=calcThmExpBnds(PCMB,TCMB,TstopCMB,dT,...
+    lsqMgPv.sampEosFit);
+[TexpMgFeCMB,thmExpBndsMgFeCMB,VExpBndsMgFeCMB]=calcThmExpBnds(PCMB,TCMB,TstopCMB,dT,...
+    lsqMgFePv.sampEosFit);
+
+%plot(TexpMgCMB',1e5*thmExpBndsMgCMB,'k-',TexpMgFeCMB',1e5*thmExpBndsMgFeCMB,'r-')
+%plot(TexpMg',1e5*thmExpBndsMg,'k-',TexpMgFe',1e5*thmExpBndsMgFe,'r-')
+%plot(TexpMg',1e5*thmExpBndsMg,'k-',TexpMgFe',1e5*thmExpBndsMgFe,'r-')
+thmExpBnds0Lo = 1e5*[thmExpBndsMg(1,:); thmExpBndsMgFe(1,:)];
+thmExpBnds0Hi = 1e5*[thmExpBndsMg(3,:); thmExpBndsMgFe(3,:)];
+thmExpBndsCMBLo = 1e5*[thmExpBndsMgCMB(1,:); thmExpBndsMgFeCMB(1,:)];
+thmExpBndsCMBHi = 1e5*[thmExpBndsMgCMB(3,:); thmExpBndsMgFeCMB(3,:)];
+
+VExpBndsCMBLo = [VExpBndsMgCMB(1,:); VExpBndsMgFeCMB(1,:)];
+VExpBndsCMBHi = [VExpBndsMgCMB(3,:); VExpBndsMgFeCMB(3,:)];
+
+figH = 1;
+set(0,'DefaultTextFontSize',14)
+set(0,'defaultAxesFontName', 'Helvetica')
+set(0,'defaultTextFontName', 'Helvetica')
+fontSize=14;
+fontName = 'Arial';
+angChar = char(197);
+
+
+figure(figH)
+clf;
+filloverlap(TexpMg,thmExpBnds0Lo,thmExpBnds0Hi,[.7 .7 .7; 1 .7 .7])
+hold on;
+plot(TexpMg,1e5*thmExpBndsMg(2,:),'k-',TexpMg,1e5*thmExpBndsMgFe(2,:),'r-',...
+    'LineWidth',2);
+hold off;
+set(gca,'box','on','layer','top','fontSize',fontSize)
+xlim([200 3000])
+xlabel('Temperature [K]','fontSize',fontSize)
+ylabel('Thermal Expansion [10^{-5} K^{-1}]','fontSize',fontSize)
+
+figure(figH)
+clf;
+filloverlap(TexpMgCMB,thmExpBndsCMBLo,thmExpBndsCMBHi,[.7 .7 .7; 1 .7 .7])
+hold on;
+plot(TexpMgCMB,1e5*thmExpBndsMgCMB(2,:),'k-',...
+    TexpMgCMB,1e5*thmExpBndsMgFeCMB(2,:),'r-',...
+    'LineWidth',2);
+hold off;
+set(gca,'box','on','layer','top','fontSize',fontSize)
+xlim([TCMB TstopCMB])
+xlabel('Temperature [K]','fontSize',fontSize)
+ylabel('Thermal Expansion [10^{-5} K^{-1}]','fontSize',fontSize)
+
+
+figure(figH)
+clf;
+filloverlap(TexpMgCMB,VExpBndsCMBLo,VExpBndsCMBHi,[.7 .7 .7; 1 .7 .7])
+hold on;
+plot(TexpMgCMB,VExpBndsMgCMB(2,:),'k-',...
+    TexpMgCMB,VExpBndsMgFeCMB(2,:),'r-',...
+    'LineWidth',2);
+hold off;
+set(gca,'box','on','layer','top','fontSize',fontSize)
+xlim([TCMB TstopCMB])
+xlabel('Temperature [K]','fontSize',fontSize)
+ylabel('Volume [Ang^3]','fontSize',fontSize)
+
+
+VExpBndsCMBLo = [VExpBndsMgCMB(1,:); VExpBndsMgFeCMB(1,:)];
+VExpBndsCMBHi = [VExpBndsMgCMB(3,:); VExpBndsMgFeCMB(3,:)];
 
 
 

@@ -1,5 +1,15 @@
-function [Pad,Vad,Tad,Kad,gamad,thmExpad]=calcAdiabat(Tfoot,Pfoot,Pstop,dlogV,eosMod)
-    evalP = @(V,T)(evalPressEos([],eosMod,V,T));
+function [Pad,Vad,Tad,Kad,gamad,thmExpad]=calcAdiabat(Tfoot,Pfoot,Pstop,dlogV,...
+        eosMod,pEos)
+    % pEos=[] -> use best-fit
+    if(~exist('pEos'))
+        pEos = [];
+    end
+    if(isempty(pEos))
+        pEos = eosMod.pEos;
+    end
+
+
+    evalP = @(V,T)(evalPressEos(pEos,eosMod,V,T));
     V0 = eosMod.pEos(1);
     Vfoot = fzero(@(V)(evalP(V,Tfoot)-Pfoot),V0);
 

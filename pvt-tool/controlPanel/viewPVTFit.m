@@ -1,10 +1,18 @@
-function viewPVTFit(PVTeval, viewmode)
+function opt = viewPVTFit(PVTeval, viewmode, opt)
+    angChar = char(197);
+
     if(~exist('viewmode'))
         viewmode = [];
     end
+    if(~exist('opt'))
+        opt = [];
+    end
+
     if(isempty(viewmode))
         viewmode = 'normal';
     end
+    optDefault = getDefaultOpt();
+    opt = setDefaultOpt(opt,optDefault);
 
     fontSz = 14;
     %
@@ -20,18 +28,33 @@ function viewPVTFit(PVTeval, viewmode)
 
     Presid = PVT(:,1)-PVTeval.Psamp;
     PErrTot = PVTeval.PVTdataList.PErrTot;
-    Pbnds = [min(PVT(:,1)) max(PVT(:,1))];
-    Vbnds = [min(PVT(:,2)) max(PVT(:,2))];
-    Tbnds = [min(PVT(:,3)) max(PVT(:,3))];
+    PbndsDat = [min(PVT(:,1)) max(PVT(:,1))];
+    VbndsDat = [min(PVT(:,2)) max(PVT(:,2))];
+    TbndsDat = [min(PVT(:,3)) max(PVT(:,3))];
 
-    Vbnds = Vbnds + .1*diff(Vbnds)*[-1 1];
+    VbndsDat = VbndsDat + .1*diff(VbndsDat)*[-1 1];
 
-    Tmax = dT*round(Tbnds(2)/dT);
-    Tbnds(2) = Tmax;
+    TmaxDat = dT*round(TbndsDat(2)/dT);
+    TbndsDat(2) = TmaxDat;
 
-    Tmod = [300 T0:dT:Tmax];
-    Vmod = linspace(Vbnds(1),Vbnds(2),100)';
-    clf;
+    if(isempty(opt.Tbnds))
+        opt.Tbnds = TbndsDat;
+    end
+    if(isempty(opt.Vbnds))
+        opt.Vbnds = VbndsDat;
+    end
+
+
+    Tmod = [300 T0:dT:opt.Tbnds(2)];
+    Vmod = linspace(opt.Vbnds(1),opt.Vbnds(2),100)';
+    if(isempty(opt.hax))
+        clf;
+        opt.hax = gca();
+    else
+        axes(opt.hax);
+        cla;
+    end
+
     switch viewmode
         case 'hist'
             nbin = max(floor(ndat/10), 10);
@@ -44,7 +67,6 @@ function viewPVTFit(PVTeval, viewmode)
             [nbinHot] = histc(Presid(indHot)./PErrTot(indHot),xedges);
             [nbinCold] = histc(Presid(indCold)./PErrTot(indCold),xedges);
 
-            clf;
             hbar = bar(xedges,nbin,'histc');
             hold on;
             hbarHot = bar(xedges,nbinHot,'histc');
@@ -61,8 +83,10 @@ function viewPVTFit(PVTeval, viewmode)
             set(hbar,'FaceColor',.95*[1 1 1],'LineWidth',2,'EdgeColor',[0 0 0])
             set(hbarCold,'FaceColor','none','LineWidth',2,'EdgeColor',[0 0 1])
             set(hbarHot,'FaceColor','none','LineWidth',2,'EdgeColor',[1 0 0])
-            xlabel('Normalized Residuals [\DeltaP /\sigma ]','FontSize',fontSz);
-            ylabel('Number of Residuals','FontSize',fontSz)
+            % xlabel('Normalized Residuals [\DeltaP /\sigma ]','FontSize',fontSz);
+            % ylabel('Number of Residuals','FontSize',fontSz)
+            xlabel('Normalized Residuals','FontSize',fontSz);
+            ylabel('Number','FontSize',fontSz)
         case 'reduced'
             Pred = evalPressEos([],eosMod,PVT(:,2),300);
             Pmodred = evalPressEos([],eosMod,Vmod,300);
@@ -83,7 +107,7 @@ function viewPVTFit(PVTeval, viewmode)
             hold off;
 
             cmap=colormap();
-            csamp = sampleColorMap(cmap,Tmod,Tbnds);
+            csamp = sampleColorMap(cmap,Tmod,opt.Tbnds);
 
             for(i=1:length(Tmod))
                 set(h(i),'Color',csamp(i,:));
@@ -94,10 +118,12 @@ function viewPVTFit(PVTeval, viewmode)
     end
     
     if(ismember(viewmode,{'normal','reduced'}))
-        caxis(Tbnds);
+        axes(opt.hax);
+        caxis(opt.Tbnds);
         hcol=colorbar;
+        
         set(hcol,'ytick',Tmod)
-        ylim(Vbnds)
+        ylim(opt.Vbnds)
 
         switch viewmode
             case 'reduced'
@@ -105,9 +131,16 @@ function viewPVTFit(PVTeval, viewmode)
             case 'normal'
                 xlabel('Pressure [GPa]','FontSize',fontSz);
         end
-        ylabel('Volume [Ang^3]','FontSize',fontSz);
+        ylabel(['Volume [' angChar '^3]'],'FontSize',fontSz);
 
         set(get(hcol,'ylabel'),'String','Temperature [K]','FontSize',fontSz)
+        opt.hcolbar = hcol;
     end
     set(gca,'Box','on','FontSize',fontSz);
+end
+function optDefault = getDefaultOpt()
+    optDefault.hax = [];
+    optDefault.hcolbar = [];
+    optDefault.Tbnds = [];
+    optDefault.Vbnds = [];
 end

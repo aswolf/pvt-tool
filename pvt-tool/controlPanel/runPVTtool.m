@@ -92,6 +92,7 @@ function PVTeval = thisLoadPVTeval(keys,PVTdata)
     %opt.fitcov = fitcov;
     PVTeval = initPVTeval(model_name,PVTdata,eosPrior,opt);
     PVTeval.fixFlag = model_fixflag;
+    PVTeval.measGrps = unique(PVTdata.measGrpID);
 end
 function [PVTdata] = thisLoadPVTdata(keys, data_dir)
     section = 'data';
